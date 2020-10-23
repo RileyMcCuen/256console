@@ -1,0 +1,228 @@
+/* Global */
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-size: 34px;
+    background-color: rgb(250, 250, 250);
+    color: rgb(60, 60, 60);
+    font-family: monospace;
+}
+
+button {
+    font-family: monospace;
+}
+
+button:focus {
+    outline: none;
+}
+
+button:hover {
+    cursor: pointer;
+}
+
+/* Header */
+
+.header {
+    background-color: rgb(240, 240, 240);
+    display: flex;
+}
+
+.header button {
+    padding: 20px;
+    flex: 1 1 0;
+    text-align: center;
+    font-size: inherit;
+    color: inherit;
+    text-decoration: none;
+    border: none;
+    border-bottom: solid rgb(226, 226, 226) 3px;
+}
+
+.header button:hover {
+    background-color: rgb(226, 226, 226);
+}
+
+.header button.active {
+    color: rgb(250, 250, 250);
+    background-color: #0388FC;
+}
+
+.header button.active:hover {
+    background-color: #0281F0;
+}
+
+/* Page */
+
+.page {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: calc(100vh - 166px); /* Header is 83px tall, Footer is 83px tall, total is 166px tall. */
+    padding: 20px;
+}
+
+.hide {
+    display: none !important;
+}
+
+.page * {
+    margin: auto;
+    display: block;
+}
+
+h1, h2, h3, .title, .subtitle, .subsubtitle {
+    text-align: center;
+    padding: 10px 0;
+    margin-bottom: 10px;
+}
+
+h1, .title {
+    font-size: 64px;
+}
+
+h2, .subtitle {
+    font-size: 56px;
+}
+
+h3, .subsubtitle {
+    font-size: 48px;
+}
+
+.purpose, .description {
+    font-size: 28px;
+    max-width: 900px;
+    padding: 10px 0;
+    margin-bottom: 25px;
+}
+
+.closer {
+    display: flex;
+    justify-content: space-between;
+}
+
+.closer > .subsubtitle {
+    margin: 0;
+}
+
+img.flip {
+    transform: rotate(180deg);
+}
+
+.page > .content {
+    display: flex;
+    justify-content: space-between;
+    overflow-y: hidden;
+    height: 100%;
+    width: 100%;
+}
+
+.actions, .statuses {
+    margin-top: 0px;
+    overflow-y: scroll;
+    width: 700px;
+    flex: 1 1 auto;
+    height: 100%;
+}
+
+.actions {
+    max-width: 900px;
+}
+
+.status, .action {
+    padding: 20px;
+    border: solid rgb(226, 226, 226) 2px;
+    border-radius: 8px;
+    background-color: rgb(255, 255, 255);
+}
+
+.action {
+
+}
+
+.action ~ .action, .status ~ .status {
+    margin-top: 40px;
+}
+
+button.close {
+    display: inline-block;
+    border: none;
+    padding: 10px;
+    margin: 10px;
+    background-color: rgb(240, 240, 240);
+    border-radius: 8px;
+}
+
+button.close:hover {
+    background-color: rgb(226, 226, 226);
+}
+
+button.act {
+    display: block;
+    font-size: 32px;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    color: white;
+    margin: 20px auto;
+}
+
+button.danger {
+    background-color: #F0241A;
+}
+
+button.danger:hover {
+    background-color: #c41d14;
+}
+
+button.safe {
+    background-color: #00D431;
+}
+
+button.safe:hover {
+    background-color: #00a92c;
+}
+
+.statuses {
+    max-width: 1000px;
+}
+
+.status {
+
+}
+
+.status > h3, .statuses > div > p {
+    text-align: left;
+}
+
+.status > ul > li, .status > div {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.status > ul > li > div {
+    margin: 0;
+}
+
+/* Attribution */
+
+.footer {
+    padding: 20px;
+    background-color: rgb(240, 240, 240);
+    border-top: solid rgb(226, 226, 226) 3px;
+}
+
+.attribution {
+    text-align: center;
+}
+
+/* Scrollbar */
+
+::-webkit-scrollbar {
+    width: 0;
+}
