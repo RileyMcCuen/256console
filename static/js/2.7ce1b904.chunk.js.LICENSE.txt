@@ -38,6 +38,8 @@ object-assign
 
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 
+/*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
 /**
    * @license MIT <https://opensource.org/licenses/MIT>
    * @copyright Michael Hart 2018
