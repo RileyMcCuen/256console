@@ -1,15 +1,16 @@
 import React from 'react';
 import './App.css';
-import {HitManagementTab, PostHitManagementTab, SemesterManagementTab, SessionManagementTab} from "./tab";
-import {RootState} from "./actions";
+import {HitManagementTab, PostHitManagementTab, SemesterManagementTab, SessionManagementTab, Tab} from "./tab";
+import {login, LoginStatus, logout, RootState} from "./actions";
 import {connect, ConnectedProps} from "react-redux";
 import {Login} from "./login";
+import {awsLogin} from "./aws-service";
 
 enum NavLocation {
-    SessionManagement = 'Session',
-    HITManagement = 'Deploy',
-    PostHITManagement = 'Post Deployment',
-    SemesterManagement = 'Semester Setup',
+    SessionManagement = 'session',
+    HITManagement = 'deploy',
+    PostHITManagement = 'post_deployment',
+    SemesterManagement = 'semester_setup',
 }
 
 class NavBar extends React.Component<{ startNavLocation: NavLocation, onUpdateActive: (input: NavLocation) => any }, { currentActive: { index: number, navLocation: NavLocation } }> {
@@ -47,7 +48,12 @@ class NavBar extends React.Component<{ startNavLocation: NavLocation, onUpdateAc
                             <button ref={val} key={ind}
                                     className={this.props.startNavLocation === navLocation ? "active" : ""}
                                     onClick={() => this.updateActive(ind, navLocation)}>
-                                {navLocation}
+                                {
+                                    navLocation
+                                        .split("_")
+                                        .map(str => str.charAt(0).toUpperCase() + str.slice(1))
+                                        .join(" ")
+                                }
                             </button>
                         );
                     })]
@@ -83,7 +89,10 @@ const mapState = (state: RootState) => {
     };
 };
 
-const mapDispatchToProps = {};
+const mapDispatchToProps = {
+    login,
+    logout
+};
 
 const connector = connect(mapState, mapDispatchToProps);
 
@@ -91,13 +100,16 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 
 type Props = PropsFromRedux & {};
 
-class App extends React.Component<Props, { navLocation: NavLocation }> {
+type TabRef = {tab: Tab | undefined}
+type TabMap = {[key: string]: TabRef}
 
-    rs = {
-        [NavLocation.SemesterManagement]: React.createRef<any>(),
-        [NavLocation.HITManagement]: React.createRef<any>(),
-        [NavLocation.PostHITManagement]: React.createRef<any>(),
-        [NavLocation.SessionManagement]: React.createRef<any>(),
+class Tabs extends React.Component<any, { navLocation: NavLocation }> {
+
+    rs: TabMap = {
+        [NavLocation.SemesterManagement as string]: {tab: undefined},
+        [NavLocation.HITManagement as string]: {tab: undefined},
+        [NavLocation.PostHITManagement as string]: {tab: undefined},
+        [NavLocation.SessionManagement as string]: {tab: undefined},
     };
 
     constructor(props: Props) {
@@ -107,21 +119,70 @@ class App extends React.Component<Props, { navLocation: NavLocation }> {
         };
     }
 
+    componentDidMount() {
+        // eslint-disable-next-line no-restricted-globals
+        const loc = location.hash;
+        if (loc === "") {
+            return;
+        }
+        const path = loc.split(".");
+        if (path.length >= 3) {
+            return;
+        }
+        const tab = path[0].slice(1) as NavLocation;
+        const action = path.length === 2 ? path[1] : "";
+        if (Object.values(NavLocation).includes(tab)) {
+            this.setState({navLocation: tab}, () => {
+                (this.rs[tab].tab as Tab).displayName(action);
+            });
+        }
+    }
+
     render() {
-        return this.props.loggedIn ?
-            (<div className="app">
-                <NavBar startNavLocation={this.state.navLocation}
-                        onUpdateActive={(navLocation) => this.setState({navLocation: navLocation})}/>
-                <SessionManagementTab display={this.state.navLocation === NavLocation.SessionManagement}/>
-                <HitManagementTab display={this.state.navLocation === NavLocation.HITManagement}/>
-                <PostHitManagementTab display={this.state.navLocation === NavLocation.PostHITManagement}/>
-                <SemesterManagementTab display={this.state.navLocation === NavLocation.SemesterManagement}/>
-                <Footer/>
-            </div>)
-            :
-            (<div className="app">
-                <Login/>
-            </div>);
+        return (
+        <div className="app">
+            <NavBar startNavLocation={this.state.navLocation}
+                    onUpdateActive={(navLocation) => this.setState({navLocation: navLocation})}/>
+            <SessionManagementTab tabRef={this.rs[NavLocation.SessionManagement]} display={this.state.navLocation === NavLocation.SessionManagement}/>
+            <HitManagementTab tabRef={this.rs[NavLocation.HITManagement]} display={this.state.navLocation === NavLocation.HITManagement}/>
+            <PostHitManagementTab tabRef={this.rs[NavLocation.PostHITManagement]} display={this.state.navLocation === NavLocation.PostHITManagement}/>
+            <SemesterManagementTab tabRef={this.rs[NavLocation.SemesterManagement]} display={this.state.navLocation === NavLocation.SemesterManagement}/>
+            <Footer/>
+        </div>
+        );
+    }
+
+}
+
+class App extends React.Component<Props, {}> {
+
+    componentDidMount() {
+        awsLogin('', '')
+            .then(
+                value => {
+                    if (value) {
+                        this.props.login();
+                    } else {
+                        this.props.logout();
+                    }
+                },
+                reason => {
+                    // error -> rejection
+                })
+            .catch(reason => {
+                // do nothing
+                this.props.logout();
+            });
+    }
+
+    render() {
+        if (this.props.loggedIn === LoginStatus.UNATTEMPTED) {
+            return <div className={"app splash"}></div>;
+        } else if (this.props.loggedIn === LoginStatus.SUCCEEDED) {
+            return <Tabs></Tabs>;
+        } else {
+            return <div className="app"><Login/></div>;
+        }
     }
 }
 

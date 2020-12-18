@@ -1,12 +1,22 @@
 import {
-    UPDATE_DB_STATUS,
     EDBStatus,
-    UPDATE_CURRENT_PROJECT,
+    LOGIN,
+    LoginStatus,
+    LOGOUT,
     RootState,
+    SPIData,
+    Student,
+    UPDATE_BALANCES,
     UPDATE_CURRENT_ITERATION,
-    UPDATE_PROJECTS, UPDATE_ITERATIONS, UPDATE_SPI_DATA, SPIData, UPDATE_STUDENTS, Student, LOGIN, LOGOUT
+    UPDATE_CURRENT_PROJECT,
+    UPDATE_DB_STATUS,
+    UPDATE_ITERATIONS,
+    UPDATE_PROJECTS,
+    UPDATE_SPI_DATA,
+    UPDATE_STUDENTS
 } from "./actions";
 import {ProjectDescription} from "./db";
+import {TAccountBalances} from "./mturk";
 
 // const defaultState: RootState = {
 //     loggedIn: false,
@@ -20,14 +30,15 @@ import {ProjectDescription} from "./db";
 // };
 
 const defaultState: RootState = {
-    loggedIn: false,
+    loggedIn: LoginStatus.UNATTEMPTED,
     dbStatus: EDBStatus.Unknown,
     projects: [],
     iterations: 3,
     currentProject: ProjectDescription.Create('', []),
     currentIteration: 0,
     spiData: null,
-    students: []
+    students: [],
+    accountBalances: [],
 };
 
 export function rootReducer(state=defaultState, action: any){
@@ -36,12 +47,12 @@ export function rootReducer(state=defaultState, action: any){
     };
     switch(action.type) {
         case LOGIN:
-            const lin = action as {loggedIn: boolean};
+            const lin = action as {loggedIn: LoginStatus};
             return reducerHelper({
                 loggedIn: lin.loggedIn
             });
         case LOGOUT:
-            const lout = action as {loggedIn: boolean};
+            const lout = action as {loggedIn: LoginStatus};
             return reducerHelper({
                 loggedIn: lout.loggedIn
             });
@@ -81,6 +92,12 @@ export function rootReducer(state=defaultState, action: any){
             const us = action as {students: Student[]};
             return reducerHelper({
                 students: us.students
+            });
+        case UPDATE_BALANCES:
+            const ub = action as {accountBalances: TAccountBalances};
+            console.log(ub.accountBalances);
+            return reducerHelper({
+                accountBalances: ub.accountBalances,
             });
         default:
             return state;

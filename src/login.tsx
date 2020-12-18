@@ -23,23 +23,6 @@ export const Login = connector(class Login extends React.Component<Props, {}> {
     usernameField = React.createRef<HTMLInputElement>();
     passwordField = React.createRef<HTMLInputElement>();
 
-    constructor(props: Props) {
-        super(props);
-        awsLogin('', '')
-            .then(
-            value => {
-                if (value) {
-                    this.props.login();
-                }
-            },
-            reason => {
-                // error -> rejection
-            })
-            .catch(reason => {
-               // do nothing
-            });
-    }
-
     render() {
         return (
             <div id={"login-container"}>

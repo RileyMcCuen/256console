@@ -7,10 +7,15 @@ import {Logout} from "./login";
 import ButtonWithDescription from "./button-with-description";
 import StudentFileInput from "./file-input";
 import HITGenerator from "./hit-generator";
+import AccountBalances from "./account-balances";
+import SubmitHits from "./submit-hits";
+
+type TabRef = {tab: Tab | undefined}
 
 interface TabProps {
-    actions: {name: string, description: string, component: JSX.Element}[];
-    display: boolean
+    tabRef: TabRef;
+    actions: {urlName: string, name: string, description: string, component: JSX.Element}[];
+    display: boolean;
 }
 
 interface TabState {
@@ -21,8 +26,16 @@ export class Tab extends React.Component<TabProps, TabState> {
 
     constructor(props: TabProps) {
         super(props);
+        this.props.tabRef.tab = this;
         this.state = {
             index: 0,
+        }
+    }
+
+    displayName(urlName: string) {
+        const index = this.props.actions.findIndex(value => value.urlName === urlName);
+        if (index >= 0) {
+            this.display(index);
         }
     }
 
@@ -89,15 +102,18 @@ export class Tab extends React.Component<TabProps, TabState> {
 
 interface ConcreteTabProps {
     display: boolean;
+    tabRef: TabRef;
 }
 
 export class SemesterManagementTab extends React.Component<ConcreteTabProps, {}> {
 
     render() {
         return <Tab
+            tabRef={this.props.tabRef}
             display={this.props.display}
             actions={[
                 {
+                    urlName: 'clear_db',
                     name: 'Clear Database',
                     description: 'Deletes all data from the database that is specific to a semester. Retains login data and other non-semester specific data.',
                     component: (<div>
@@ -110,6 +126,7 @@ export class SemesterManagementTab extends React.Component<ConcreteTabProps, {}>
                                 </div>)
                 },
                 {
+                    urlName: 'change_projects',
                     name: 'Change Projects',
                     description: 'Allows you to view and change projects for this course.',
                     component: <UpdateProjects/>
@@ -124,9 +141,11 @@ export class HitManagementTab extends React.Component<ConcreteTabProps, {}> {
 
     render() {
         return <Tab
+            tabRef={this.props.tabRef}
                 display={this.props.display}
                 actions={[
                     {
+                        urlName: 'generate_hits',
                         name: 'Generate HITs',
                         description: 'Generate HITs for each student. HITs will be generated based on current project and iteration as well as information about which HITs that they have had for previous iterations.',
                         component: (
@@ -134,7 +153,20 @@ export class HitManagementTab extends React.Component<ConcreteTabProps, {}> {
                                 <HITGenerator/>
                                 <DBStatus/>
                                 <Table />
-                            </div>)
+                            </div>
+                        )
+                    },
+                    {
+                        urlName: 'check_account_balances',
+                        name: 'Check Account Balances',
+                        description: 'Checks the account balances for all accounts in the uploaded credentials file.',
+                        component: <AccountBalances />
+                    },
+                    {
+                        urlName: 'submit_hits',
+                        name: 'Submit Hits',
+                        description: 'Submit hits for the current project and iteration. These hits will be submitted based on the currently generated hits for this project and iteration. You can view those in the table below. If you would like different task assignments then change them here: [insert button that leads to generate hit assignment]',
+                        component: <SubmitHits />
                     }
                 ]}
         >
@@ -148,6 +180,7 @@ export class PostHitManagementTab extends React.Component<ConcreteTabProps, {}> 
 
     render() {
         return <Tab
+            tabRef={this.props.tabRef}
             display={this.props.display}
             actions={[]}
         />
@@ -159,10 +192,12 @@ export class SessionManagementTab extends React.Component<ConcreteTabProps, {}> 
 
     render() {
         return <Tab
+            tabRef={this.props.tabRef}
             display={this.props.display}
             actions={
                 [
                     {
+                        urlName: 'load_student_credentials',
                         name: 'Load Student Credentials',
                         description: 'Load in student credentials if you need to interact with students and/or their Mturk accounts.',
                         component:
@@ -187,6 +222,7 @@ export class SessionManagementTab extends React.Component<ConcreteTabProps, {}> 
                             </div>
                     },
                     {
+                        urlName: 'logout',
                         name: 'Logout',
                         description: 'Use this to log out of the application.',
                         component: <Logout />

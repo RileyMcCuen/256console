@@ -160,6 +160,12 @@ label.student-input:hover {
     background-color: #0281F0;
 }
 
+/* Splash Page Styling */
+
+.splash {
+    background-color: white;
+}
+
 /* Login Form */
 
 #login-container {
@@ -486,6 +492,37 @@ ul.projects > li:last-child > input {
     width: 100%;
     max-width: 700px;
     overflow-y: scroll;
+}
+
+/* Generic Table Styling */
+
+.refresh {
+    width: 100%;
+}
+
+table.component {
+    width: 100%;
+    border-radius: 5px;
+    border-collapse: collapse;
+}
+
+table.component th {
+    background-color: rgb(239, 239, 239);
+}
+
+table.component th, table.component td {
+    border: 2px solid rgb(226, 226, 226);
+    padding: 5px;
+}
+
+table.component td.ready {
+    background-color: #28a745;
+    color: white;
+}
+
+table.component td.not-ready {
+    background-color: #F0241A;
+    color: white;
 }
 
 /* Status Styling */

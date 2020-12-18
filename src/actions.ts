@@ -1,4 +1,6 @@
 import {table, ClassTable, ProjectDescription} from "./db";
+import MTPool, {TAccountBalances} from "./mturk";
+import {store} from "./store";
 
 export enum EDBStatus {
     Unknown,
@@ -16,6 +18,7 @@ export const UPDATE_CURRENT_PROJECT = 'UPDATE_CURRENT_PROJECT';
 export const UPDATE_CURRENT_ITERATION = 'UPDATE_CURRENT_ITERATION';
 export const UPDATE_SPI_DATA = 'UPDATE_SPI_DATA';
 export const UPDATE_STUDENTS = 'UPDATE_STUDENTS';
+export const UPDATE_BALANCES = 'UPDATE_BALANCES';
 
 export interface StudentProjectIteration {
     name1: string;
@@ -49,8 +52,14 @@ export interface Student {
     secret: string;
 }
 
+export enum LoginStatus {
+    UNATTEMPTED,
+    FAILED,
+    SUCCEEDED
+}
+
 export interface RootState {
-    loggedIn: boolean;
+    loggedIn: LoginStatus;
     dbStatus: EDBStatus;
     projects: ProjectDescription[];
     iterations: number;
@@ -58,19 +67,20 @@ export interface RootState {
     currentIteration: number;
     spiData: null | SPIData;
     students: Student[];
+    accountBalances: TAccountBalances;
 }
 
 export const login = () => {
     return {
         type: LOGIN,
-        loggedIn: true
+        loggedIn: LoginStatus.SUCCEEDED
     };
 }
 
 export const logout = () => {
     return {
         type: LOGOUT,
-        loggedIn: false
+        loggedIn: LoginStatus.FAILED
     };
 }
 
@@ -120,10 +130,20 @@ export const updateSPIData = (spiData: SPIData) => {
 }
 
 export const updateStudents = (students: Student[]) => {
+    students.forEach(stud => {
+        MTPool.add(stud.wustlKey, stud.id, stud.secret);
+    });
     return {
         type: UPDATE_STUDENTS,
         students
     }
+}
+
+export const updateBalances = (accountBalances: TAccountBalances) => {
+    return {
+        type: UPDATE_BALANCES,
+        accountBalances
+    };
 }
 
 export const fetchProjects = () => {
@@ -140,6 +160,16 @@ export const fetchSPIData = () => {
     return async (dispatch: any) => {
         try {
             dispatch(updateSPIData({}));
+        } catch (e) {console.log(e);}
+    }
+}
+
+export const fetchAccountBalances = () => {
+    return async(dispatch: any) => {
+        try {
+            const balances = await Promise.all(await MTPool.getAccountBalances());
+            console.log(balances)
+            dispatch(updateBalances(balances));
         } catch (e) {console.log(e);}
     }
 }

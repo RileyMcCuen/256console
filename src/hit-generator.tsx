@@ -54,6 +54,10 @@ export default connector(class HITGenerator extends React.Component<Props, State
         if (this.props.spiData === null) {
             alert('Cannot generate when data has not been loaded from database.');
         }
+        if (this.props.currentProject.TaskTags.length === 0) {
+            alert('Cannot generate task assignment when no tasks exist for this project. Add tags to this project on Semester Setup > Change Project.')
+            return;
+        }
         const newSPIData = {};
         Object.assign(newSPIData, this.props.spiData);
         this.props.students.forEach(stud => {
