@@ -8,6 +8,13 @@ export type TAccountBalances = AccountPair[];
 
 class MTurkPool {
     private accts: MTurkAccounts = {};
+    private static HitConfig(url: string): string {
+        return `<?xml version="1.0" encoding="UTF-8"?>
+                    <ExternalQuestion xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">
+                        <ExternalURL>${url}</ExternalURL>
+                        <FrameHeight>0</FrameHeight>
+                    </ExternalQuestion>`;
+    }
 
     add(wustlKey: string, accessID: string, accessSecret: string) {
         this.addAccount(wustlKey, new AWS.MTurk({
@@ -44,21 +51,29 @@ class MTurkPool {
         });
     }
 
-    async uploadHits() {
+    async uploadHits(urls: {[wustlKey: string]: string[]}) {
         return this.forp(async (wustlKey, acct) => {
             return new Promise<AccountPair>((resolve, reject) => {
-                acct.createHIT({
-                    AssignmentDurationInSeconds: 1000000,
-                    AutoApprovalDelayInSeconds: 1000000,
-                    Description: 'This is a sandbox test hit from the 256 console.',
-                    LifetimeInSeconds: 10000000000,
-                    MaxAssignments: 10,
-                    Reward: "0.01",
-                    Title: "This is a hit for 256 console testing",
-                    Question: ""
-                    },
-                    (err, data) => {
-
+                const urlsForStud = urls[wustlKey];
+                urlsForStud.forEach(url => {
+                    console.log(MTurkPool.HitConfig(url))
+                    acct.createHIT({
+                            AssignmentDurationInSeconds: 100000,
+                            AutoApprovalDelayInSeconds: 100000,
+                            Description: 'This is a sandbox test hit from the 256 console.',
+                            LifetimeInSeconds: 1000000,
+                            MaxAssignments: 10,
+                            Reward: "0.01",
+                            Title: "This is a hit for 256 console testing",
+                            Question: MTurkPool.HitConfig(url)
+                        },
+                        (err, data) => {
+                            if (err) {
+                                console.log("ERROR: " + err);
+                            } else {
+                                console.log("DATA: " + data);
+                            }
+                        });
                 });
                 acct.getAccountBalance((err: AWSError, data: GetAccountBalanceResponse) => {
                     if (err) {

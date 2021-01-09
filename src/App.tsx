@@ -157,20 +157,27 @@ class Tabs extends React.Component<any, { navLocation: NavLocation }> {
 class App extends React.Component<Props, {}> {
 
     componentDidMount() {
+        console.log("mounted")
         awsLogin('', '')
             .then(
                 value => {
                     if (value) {
+                        console.log("login")
                         this.props.login();
                     } else {
+                        console.log("logout")
                         this.props.logout();
                     }
                 },
                 reason => {
+                    console.log(reason)
+                    this.props.logout();
                     // error -> rejection
                 })
             .catch(reason => {
                 // do nothing
+                console.log("logout")
+                console.log(reason)
                 this.props.logout();
             });
     }
