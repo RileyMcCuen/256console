@@ -54,7 +54,10 @@ export default connector(class HITGenerator extends React.Component<Props, State
         if (this.props.spiData === null) {
             alert('Cannot generate when data has not been loaded from database.');
         }
-        if (this.props.currentProject.TaskTags.length === 0) {
+        const tasks = this.props.currentProject.parsedTags;
+        if (tasks !== undefined
+            && tasks.length === 0
+        ) {
             alert('Cannot generate task assignment when no tasks exist for this project. Add tags to this project on Semester Setup > Change Project.')
             return;
         }
@@ -76,8 +79,8 @@ export default connector(class HITGenerator extends React.Component<Props, State
             while (pis.length <= this.props.currentIteration) {
                 pis.push(DefaultStudentProjectIteration());
             }
-            const rands = this.threeRands(this.props.currentProject.TaskTags.length);
-            const tags = rands.map(ind => this.props.currentProject.TaskTags[ind]);
+            const rands = this.threeRands(tasks.length);
+            const tags = rands.map(ind => tasks[ind]);
             pis[this.props.currentIteration] = {
                 name1: tags[0],
                 name2: tags[1],

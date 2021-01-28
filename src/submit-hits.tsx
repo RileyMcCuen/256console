@@ -39,17 +39,27 @@ class SubmitHits extends React.Component<Props, State> {
             > Sandbox Toggle </button>
             <button
                 className={"refresh danger"}
-                onClick={() => {
+                onClick={async () => {
+                    const hitData: {[key: string]: {count: number, url: string}[]} = {};
                     this.props.students.forEach(stud => {
-                        MTPool.uploadHits({
-                            "riley.mccuen": [
-                                "https://cse256-sp2021.github.io/pages-test-deployment/"
-                            ],
-                            "instructor": [
-                                "https://cse256-sp2021.github.io/pages-test-deployment/"
-                            ]
-                        })
-                    })
+                        const urls: {count: number, url: string}[] = [];
+                        if (this.props.spiData) {
+                            const studHitConfigData = this.props.spiData[stud.wustlKey][this.props.currentProject.Name][this.props.currentIteration];
+                            if (studHitConfigData) {
+                                if (studHitConfigData.name1 !== '' && studHitConfigData.count1 !== 3) {
+                                    urls.push({count: 3 - studHitConfigData.count1, url: `${stud.url}/?wustl_key=${stud.wustlKey}&amp;sandbox=true&amp;project=${this.props.currentProject.Name}&amp;iteration=${this.props.currentIteration}&amp;tag=${studHitConfigData.name1}`}); // TODO: make sandbox toggleable
+                                }
+                                if (studHitConfigData.name2 !== '' && studHitConfigData.count2 !== 3) {
+                                    urls.push({count: 3 - studHitConfigData.count1, url: `${stud.url}/?wustl_key=${stud.wustlKey}&amp;sandbox=true&amp;project=${this.props.currentProject.Name}&amp;iteration=${this.props.currentIteration}&amp;tag=${studHitConfigData.name2}`}); // TODO: make sandbox toggleable
+                                }
+                                if (studHitConfigData.name2 !== '' && studHitConfigData.count3 !== 3) {
+                                    urls.push({count: 3 - studHitConfigData.count1, url: `${stud.url}/?wustl_key=${stud.wustlKey}&amp;sandbox=true&amp;project=${this.props.currentProject.Name}&amp;iteration=${this.props.currentIteration}&amp;tag=${studHitConfigData.name3}`}); // TODO: make sandbox toggleable
+                                }
+                            }
+                        }
+                        hitData[stud.wustlKey] = urls;
+                    });
+                    const resp = await MTPool.uploadHits(hitData);
                 }}
             > Submit Hits </button>
             <Table />

@@ -41,10 +41,11 @@ export default connector(class StudentFileInput extends React.Component<Props, S
     validateStudents(values: string[][]): boolean {
         return values.length > 1
             && values[0][0].trim() === 'WUSTL Key'
-            && values[0][1].trim() === 'AWS IAM ID'
-            && values[0][2].trim() === 'AWS IAM SECRET'
+            && values[0][1].trim() === 'GH Pages URL'
+            && values[0][2].trim() === 'AWS IAM ID'
+            && values[0][3].trim() === 'AWS IAM SECRET'
             && values.every(row => {
-                return row.length === 3;
+                return row.length === 4;
             });
     }
 
@@ -63,8 +64,9 @@ export default connector(class StudentFileInput extends React.Component<Props, S
                                     .map(studData => {
                                         return {
                                             wustlKey: studData[0].trim(),
-                                            id: studData[1].trim(),
-                                            secret: studData[2].trim(),
+                                            url: studData[1].trim(),
+                                            id: studData[2].trim(),
+                                            secret: studData[3].trim(),
                                         };
                                     })
                             );

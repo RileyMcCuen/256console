@@ -37,50 +37,80 @@ class MTurkPool {
         });
     }
 
+    async getAccountBalance(wustlKey: string, acct: AWS.MTurk) {
+        return new Promise<AccountPair>((resolve, reject) => {
+            acct.getAccountBalance((err: AWSError, data: GetAccountBalanceResponse) => {
+                if (err) {
+                    resolve({wustlKey: wustlKey, balance: "Not Available."});
+                } else {
+                    resolve({wustlKey: wustlKey, balance: data.AvailableBalance ? data.AvailableBalance : "Not Available."});
+                }
+            });
+        });
+    }
+
     async getAccountBalances() {
         return this.forp(async (wustlKey, acct) => {
+            return this.getAccountBalance(wustlKey, acct);
+        });
+    }
+
+    async uploadHit() {
+
+    }
+
+    async uploadHits(urls: {[wustlKey: string]: {count: number, url: string}[]}) {
+        return this.forp(async (wustlKey, acct) => {
             return new Promise<AccountPair>((resolve, reject) => {
-                acct.getAccountBalance((err: AWSError, data: GetAccountBalanceResponse) => {
-                    if (err) {
-                        resolve({wustlKey: wustlKey, balance: "Not Available."});
-                    } else {
-                        resolve({wustlKey: wustlKey, balance: data.AvailableBalance ? data.AvailableBalance : "Not Available."});
+                const urlsForStud = urls[wustlKey];
+                urlsForStud.forEach(async urlCountPair => {
+                    if (urlCountPair.count > 0) {
+                        setTimeout(async () => {
+                            acct.createHIT({ // TODO: fix this to be generalizable config
+                                    AssignmentDurationInSeconds: 360,
+                                    AutoApprovalDelayInSeconds: 2592000,
+                                    Description: 'You will be given a scenario for a website user. Please navigate through the website to find the answer - your path is tracked as you work. When you are on the page with the answer, fill out the text box in the drop down at the top of the page and click submit. Correct answers will receive bonuses of up to $.25.',
+                                    LifetimeInSeconds: (60 * 60 * 20), // 20 hours
+                                    MaxAssignments: urlCountPair.count,
+                                    Reward: "0.40",
+                                    Title: "Information Foraging WUSTL",
+                                    Question: MTurkPool.HitConfig(urlCountPair.url)
+                                },
+                                async (err, data) => {
+                                    if (err) {
+                                        console.log("ERROR: " + err);
+                                    } else {
+                                        console.log("DATA: " + data);
+                                    }
+                                    resolve({
+                                        wustlKey: wustlKey,
+                                        balance: (await acct.getAccountBalance().promise()).AvailableBalance as string,
+                                    });
+                                });
+                        },100);
                     }
                 });
             });
         });
     }
 
-    async uploadHits(urls: {[wustlKey: string]: string[]}) {
+    async cancelHits() {
         return this.forp(async (wustlKey, acct) => {
-            return new Promise<AccountPair>((resolve, reject) => {
-                const urlsForStud = urls[wustlKey];
-                urlsForStud.forEach(url => {
-                    console.log(MTurkPool.HitConfig(url))
-                    acct.createHIT({
-                            AssignmentDurationInSeconds: 100000,
-                            AutoApprovalDelayInSeconds: 100000,
-                            Description: 'This is a sandbox test hit from the 256 console.',
-                            LifetimeInSeconds: 1000000,
-                            MaxAssignments: 10,
-                            Reward: "0.01",
-                            Title: "This is a hit for 256 console testing",
-                            Question: MTurkPool.HitConfig(url)
-                        },
-                        (err, data) => {
+            return new Promise<AccountPair>(async (resolve, reject) => {
+                const hits = await acct.listHITs().promise();
+                hits.HITs?.forEach(hit => {
+                    setTimeout(() => {
+                        acct.updateExpirationForHIT({
+                            ExpireAt: new Date(),
+                            HITId: hit.HITId as string
+                        }, (err, data) => {
                             if (err) {
                                 console.log("ERROR: " + err);
                             } else {
                                 console.log("DATA: " + data);
                             }
                         });
-                });
-                acct.getAccountBalance((err: AWSError, data: GetAccountBalanceResponse) => {
-                    if (err) {
-                        resolve({wustlKey: wustlKey, balance: "Not Available."});
-                    } else {
-                        resolve({wustlKey: wustlKey, balance: data.AvailableBalance ? data.AvailableBalance : "Not Available."});
-                    }
+                    },100);
                 });
             });
         });

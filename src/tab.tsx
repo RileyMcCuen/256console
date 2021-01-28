@@ -9,6 +9,7 @@ import StudentFileInput from "./file-input";
 import HITGenerator from "./hit-generator";
 import AccountBalances from "./account-balances";
 import SubmitHits from "./submit-hits";
+import CancelHits from "./cancel-hits";
 
 type TabRef = {tab: Tab | undefined}
 
@@ -164,9 +165,15 @@ export class HitManagementTab extends React.Component<ConcreteTabProps, {}> {
                     },
                     {
                         urlName: 'submit_hits',
-                        name: 'Submit Hits',
+                        name: 'Submit HITs',
                         description: 'Submit hits for the current project and iteration. These hits will be submitted based on the currently generated hits for this project and iteration. You can view those in the table below. If you would like different task assignments then change them here: [insert button that leads to generate hit assignment]',
                         component: <SubmitHits />
+                    },
+                    {
+                        urlName: 'cancel_hits',
+                        name: 'Cancel HITs',
+                        description: 'Allows you to cancel all hits for all accounts listed in the current credentials file.',
+                        component: <CancelHits />
                     }
                 ]}
         >

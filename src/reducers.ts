@@ -34,7 +34,7 @@ const defaultState: RootState = {
     dbStatus: EDBStatus.Unknown,
     projects: [],
     iterations: 3,
-    currentProject: ProjectDescription.Create('', []),
+    currentProject: ProjectDescription.Create('', ''),
     currentIteration: 0,
     spiData: null,
     students: [],

@@ -451,29 +451,42 @@ abstract class ClassTableEntity extends AEntity {
 
 }
 
+export class Task {
+    tag: string;
+    description: string;
+
+    constructor(tag: string, description: string) {
+        this.tag = tag;
+        this.description = description;
+    }
+}
+
 export class ProjectDescription extends ClassTableEntity {
 
     static ProjectName = 'ProjectName';
     static primaryKeyPrefix = 'CLASS';
     static sortKeyPrefix = 'PROJECT_NAME';
     static PK = '#' + ProjectDescription.primaryKeyPrefix + ':' + ProjectDescription.ProjectName;
-    public static readonly primaryKey = new PrimaryKey(ClassTable.PKName, ProjectDescription.primaryKeyPrefix, 'ProjectName', Types.Str);
-    public static readonly sortKey = new SortKey(ClassTable.SKName, ProjectDescription.sortKeyPrefix, ['Name'], [Types.Str, Types.Num]);
+    public static readonly primaryKey = new PrimaryKey(ClassTable.PKName, ProjectDescription.primaryKeyPrefix, ProjectDescription.ProjectName, Types.Str);
+    public static readonly sortKey = new SortKey(ClassTable.SKName, ProjectDescription.sortKeyPrefix, ['Name'], [Types.Str]);
 
     // @ts-ignore
     ProjectName: string;
     // @ts-ignore
     Name: string;
     // @ts-ignore
-    TaskTags: string[];
+    Tasks: string;
+    parsedTags: Task[];
 
     constructor(data: DynamoDB.DocumentClient.AttributeMap) {
         data['ProjectName'] = ProjectDescription.ProjectName;
         super();
         this.construct(data);
         // @ts-ignore
-        if (this.TaskTags === undefined) {
-            this.TaskTags = [];
+        if (this.Tasks === undefined) {
+            this.parsedTags = [];
+        } else {
+            this.parsedTags = JSON.parse(this.Tasks).map((task: any) => new Task(task.tag, task.description));
         }
     }
 
@@ -489,11 +502,14 @@ export class ProjectDescription extends ClassTableEntity {
         return ProjectDescription.sortKeyPrefix;
     }
 
-    public static Create(name: string, tags: string[]) {
+    public static Create(name: string, tasks: string) {
+        if (tasks === '') {
+            tasks = '[]';
+        }
         return new ProjectDescription({
             PKMeta: ProjectDescription.PK,
             SKMeta: this.sortKey.toString({Name: name}),
-            TaskTags: tags
+            Tasks: tasks
         });
     }
 

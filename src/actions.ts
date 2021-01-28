@@ -1,4 +1,4 @@
-import {table, ClassTable, ProjectDescription} from "./db";
+import {table, ClassTable, ProjectDescription, Task} from "./db";
 import MTPool, {TAccountBalances} from "./mturk";
 import {store} from "./store";
 
@@ -47,6 +47,7 @@ export interface SPIData {
 }
 
 export interface Student {
+    url: string;
     wustlKey: string;
     id: string;
     secret: string;
@@ -56,6 +57,10 @@ export enum LoginStatus {
     UNATTEMPTED,
     FAILED,
     SUCCEEDED
+}
+
+export interface Tasks {
+    [projectName: string]: Task[]
 }
 
 export interface RootState {
@@ -96,7 +101,7 @@ export const updateProjects = (projects: ProjectDescription[]) => {
     return {
         type: UPDATE_PROJECTS,
         projects: sortedProjects,
-        currentProject: sortedProjects[0] ? sortedProjects[0] : ProjectDescription.Create('No Projects Yet', [])
+        currentProject: sortedProjects[0] ? sortedProjects[0] : ProjectDescription.Create('No Projects Yet', '')
     }
 }
 
