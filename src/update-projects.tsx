@@ -3,120 +3,7 @@ import {connect, ConnectedProps} from 'react-redux'
 import {RootState, updateProjects} from "./actions";
 import {store} from "./store";
 import {ProjectDescription, table, Task} from "./db";
-
-interface UpdateTasksProps {
-    tasks: Task[];
-    updateTasks: (newTasks: string) => any;
-}
-
-interface UpdateTasksState {
-    taskIndex: number;
-    tag: string;
-    description: string;
-}
-
-class UpdateTasks extends React.Component<UpdateTasksProps, UpdateTasksState> {
-
-    constructor(props: UpdateTasksProps) {
-        super(props);
-        this.state = {
-            taskIndex: -2,
-            tag: '',
-            description: '',
-        };
-    }
-
-    render() {
-        return (
-            <div className={'update-tasks'}>
-                <ul>
-                    <li
-                        key={'TitleLI'}
-                    >
-                        Tasks
-                    </li>
-                    {
-                        this.props.tasks.map((tag, index) => {
-                            return (
-                                // Might not update properly if key is tag name and tag is not changed
-                                <li
-                                    key={tag.tag}
-                                    onClick={() => this.setState({taskIndex: index, tag: tag.tag, description: tag.description})}
-                                >
-                                    {tag.tag}
-                                </li>
-                            );
-                        })
-                    }
-                    <li
-                        key={'NewTag'}
-                        onClick={() => this.setState({taskIndex: -1, tag: '', description: ''})}
-                    >
-                        New Tag
-                    </li>
-                </ul>
-                <div className={'form-container'}>
-                    {
-                        this.state.taskIndex > -2 ? <form
-                            onSubmit={ev => {
-                                ev.preventDefault();
-                                if (
-                                    this.state.taskIndex === -2
-                                    || this.state.tag === ''
-                                    || this.state.description === ''
-                                ) {
-                                    return; // is not in a submittable stage (-2) or task is in an invalid state
-                                }
-                                if (this.state.taskIndex === -1) {
-                                    this.props.updateTasks(JSON.stringify([...this.props.tasks, new Task(this.state.tag, this.state.description)])); // new tag has been made
-                                } else if (
-                                    this.state.tag === this.props.tasks[this.state.taskIndex].tag
-                                    && this.state.description === this.props.tasks[this.state.taskIndex].description
-                                ) {
-                                    return; // no changes have been made
-                                } else {
-                                    let copy = [...this.props.tasks];
-                                    copy[this.state.taskIndex] = new Task(this.state.tag, this.state.description);
-                                    this.props.updateTasks(JSON.stringify(copy)); // update
-                                    this.setState({taskIndex: -2, tag: '', description: ''});
-                                }
-                            }}
-                        >
-                            <input
-                                type={'text'}
-                                placeholder={'Task Name...'}
-                                value={this.state.tag}
-                                onChange={ev => this.setState({tag: ev.target.value})}
-                            />
-                            <textarea
-                                placeholder={'Description...'}
-                                value={this.state.description}
-                                onChange={ev => this.setState({description: ev.target.value})}
-                            ></textarea>
-                            <div>
-                                <button type={"submit"}> Save</button>
-                                <button
-                                    onClick={() => {
-                                        if (this.state.taskIndex >= 0) {
-                                            this.setState({
-                                                tag: this.props.tasks[this.state.taskIndex].tag,
-                                                description: this.props.tasks[this.state.taskIndex].description
-                                            });
-                                        } else {
-                                            this.setState({tag: '', description: ''});
-                                        }
-                                    }}
-                                > Cancel
-                                </button>
-                            </div>
-                        </form>
-                            : <div> Select a tag in the list to the left to edit it, or select 'New Task' at the bottom of the list to create a new task. </div>
-                    }
-                </div>
-            </div>
-        );
-    }
-}
+import {FileDrop} from "react-file-drop";
 
 const mapState = (state: RootState) => {
     return {
@@ -158,11 +45,13 @@ class UpdateProject extends React.Component<UpdateProjectProps, { editing: boole
 
     render() {
         return (
-            <li className={this.props.selected ? "update-project selected" : "update-project"} onClick={event => {
-                event.stopPropagation();
-                this.props.select(() => {
-                });
-            }}>
+            <li className={this.props.selected ? "update-project selected" : "update-project"}
+                onClick={event => {
+                    event.stopPropagation();
+                    this.props.select(() => {
+                    });
+                }}
+            >
                 <div className={"project-name"}>
                     <input type={'text'}
                            value={this.state.val}
@@ -197,9 +86,60 @@ class UpdateProject extends React.Component<UpdateProjectProps, { editing: boole
                     </button>
                 </div>
                 <div className={this.props.selected ? "project-tags" : "hide"}>
-                    <UpdateTasks tasks={this.props.project.parsedTags}
-                                 updateTasks={(newVal: string) => this.props.update(ProjectDescription.Create(this.props.project.Name, newVal))}/>
+                    <FileDrop
+                        className={'file-drop'}
+                        onDrop={(files) => {
+                            if (files === null) {
+                                alert('Please put an actual file into the drop zone.');
+                                return;
+                            }
+                            if (files.length !== 1) {
+                                alert('Only input exactly one file into the drag and drop function.')
+                                return;
+                            }
+                            try {
+                                const reader = new FileReader();
+                                reader.addEventListener('loadend', (e) => {
+                                    try {
+                                        const parsed = JSON.parse(reader.result as string);
+                                        if (Array.isArray(parsed)) {
+                                            if (parsed.every(item => ('context' in item) && ('question' in item) && ('tag' in item)))
+                                            {
+                                                const tasks = JSON.stringify(parsed.map(item => {return {tag: item.tag, description: item.context + item.question}}));
+                                                this.props.update(ProjectDescription.Create(this.props.project.Name, tasks));
+                                            } else {
+                                                alert('Elements in array do not conform to specification.');
+                                            }
+                                        } else {
+                                            alert('Input JSON document should be an array at the top level.');
+                                        }
+                                    } catch (e) {
+                                        console.log(e);
+                                        alert(e);
+                                    }
+                                });
+                                reader.readAsText(files[0]);
+                            } catch (e) {
+                                console.log(e);
+                                alert(e);
+                            }
+                        }}
+                    >
+                        Drop json file with scenario context here!
+                    </FileDrop>
                 </div>
+                <ul>
+                    {
+                        this.props.project.parsedTags.map((tag, index) => {
+                            return <li key={tag.tag+tag.description}>
+                                <h3> {tag.tag} </h3>
+                                <p>
+                                    {tag.description}
+                                </p>
+                            </li>;
+                        })
+                    }
+                </ul>
             </li>
         );
     }

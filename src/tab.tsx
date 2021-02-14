@@ -10,6 +10,7 @@ import HITGenerator from "./hit-generator";
 import AccountBalances from "./account-balances";
 import SubmitHits from "./submit-hits";
 import CancelHits from "./cancel-hits";
+import DownloadZip from "./download-zip";
 
 type TabRef = {tab: Tab | undefined}
 
@@ -174,6 +175,12 @@ export class HitManagementTab extends React.Component<ConcreteTabProps, {}> {
                         name: 'Cancel HITs',
                         description: 'Allows you to cancel all hits for all accounts listed in the current credentials file.',
                         component: <CancelHits />
+                    },
+                    {
+                        urlName: 'download_logs',
+                        name: 'Download Logs',
+                        description: 'Allows you to download all logs for a given project and iteration.',
+                        component: <DownloadZip />
                     }
                 ]}
         >

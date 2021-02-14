@@ -82,9 +82,9 @@ export default connector(class HITGenerator extends React.Component<Props, State
             const rands = this.threeRands(tasks.length);
             const tags = rands.map(ind => tasks[ind]);
             pis[this.props.currentIteration] = {
-                name1: tags[0],
-                name2: tags[1],
-                name3: tags[2],
+                name1: tags[0].tag,
+                name2: tags[1].tag,
+                name3: tags[2].tag,
                 count1: 0,
                 count2: 0,
                 count3: 0

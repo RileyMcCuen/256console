@@ -1,6 +1,6 @@
 import {AuthenticationDetails, CognitoUser, CognitoUserPool, CognitoUserSession} from 'amazon-cognito-identity-js';
 import { AwsClient } from 'aws4fetch';
-import {Region} from "./aws-constants";
+import {AppJSONHeaders, BaseURL, METHODS, Region} from "./aws-constants";
 import {createTable as dbCreateTable} from "./db";
 import {fetchProjects, fetchSPIData} from "./actions";
 import {store} from "./store";
@@ -171,4 +171,20 @@ export const awsLogout = async () => {
         });
     }
     return true;
+}
+
+export const downloadAllFiles = async (project: string, iteration: number) => {
+    const url = BaseURL + `/logs?project=${project}&iteration=${iteration}`;
+    const b64= (await (await (awsFetchClient as AwsClient).fetch(url, {
+        method: METHODS.GET,
+        headers: AppJSONHeaders()
+    })).text());
+    const byteString = atob(b64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: 'application/zip' });
 }

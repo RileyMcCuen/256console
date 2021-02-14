@@ -334,8 +334,11 @@ class Table {
         return this.fetchJSON(url, request);
     }
 
-    update() {
-
+    async update(pk: string, sk: string, entity: IEntity) {
+        const deleted = await this.delete(pk, sk);
+        console.log(deleted);
+        const puted = await this.put(entity);
+        console.log(puted);
     }
 
     async get(pk: string, sk: string) {
