@@ -6,7 +6,8 @@ import {store} from "./store";
 
 export const mapState = (state: RootState) => {
     return {
-        balances: state.accountBalances
+        balances: state.accountBalances,
+        mturkMode: state.mturkMode,
     };
 };
 
@@ -27,14 +28,14 @@ class AccountBalances extends React.Component<Props, State> {
 
     componentDidMount() {
         if (this.props.balances === []) {
-            store.dispatch(fetchAccountBalances());
+            store.dispatch(fetchAccountBalances(this.props.mturkMode));
         }
     }
 
     render() {
         return (
             <div>
-                <button className={"act basic refresh"} onClick={() => store.dispatch(fetchAccountBalances())}> Refresh </button>
+                <button className={"act basic refresh"} onClick={() => store.dispatch(fetchAccountBalances(this.props.mturkMode))}> Refresh </button>
                 <table className={"component"}>
                     <thead>
                         <tr>

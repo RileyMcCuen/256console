@@ -565,3 +565,43 @@ export class HIT extends ClassTableEntity {
     }
 
 }
+
+export class Log extends ClassTableEntity {
+
+    static primaryKeyPrefix = 'STUDENT';
+    static sortKeyPrefix = 'LOG';
+    public static readonly  primaryKey = new PrimaryKey(ClassTable.PKName, Log.primaryKeyPrefix, 'HITID', Types.Str);
+    public static readonly sortKey = new SortKey(ClassTable.SKName, Log.sortKeyPrefix, ['AssignmentID', 'WorkerID'], [Types.Str, Types.Str]);
+
+    // @ts-ignore
+    HITID: string;
+    // @ts-ignore
+    AssignmentID: string;
+    // @ts-ignore
+    WorkerID: string;
+
+    constructor(data: DynamoDB.DocumentClient.AttributeMap) {
+        super();
+        this.construct(data);
+    }
+
+    primaryKey(): PrimaryKey {
+        return Log.primaryKey;
+    }
+
+    sortKey(): SortKey {
+        return Log.sortKey;
+    }
+
+    get sortKeyPrefix(): string {
+        return Log.sortKeyPrefix;
+    }
+
+    public static Create(hitID: string, assignmentID: string, workerID: string) {
+        return new Log({
+            PKMeta: this.primaryKey.toString(hitID),
+            SKMeta: this.sortKey.toString({AssignmentID: assignmentID, WorkerID: workerID}),
+        });
+    }
+
+}

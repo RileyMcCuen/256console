@@ -1,5 +1,5 @@
 import React from "react";
-import {RootState, updateStudents, updateSPIData, SPIData, DefaultStudentProjectIteration} from "./actions";
+import {RootState, updateStudents, updateSPIData, SPIData} from "./actions";
 import {connect, ConnectedProps} from "react-redux";
 import ButtonWithDescription from "./button-with-description";
 
@@ -61,7 +61,7 @@ export default connector(class HITGenerator extends React.Component<Props, State
             alert('Cannot generate task assignment when no tasks exist for this project. Add tags to this project on Semester Setup > Change Project.')
             return;
         }
-        const newSPIData = {};
+        const newSPIData: SPIData = {};
         Object.assign(newSPIData, this.props.spiData);
         this.props.students.forEach(stud => {
             // @ts-ignore
@@ -77,18 +77,24 @@ export default connector(class HITGenerator extends React.Component<Props, State
                 studSPI[this.props.currentProject.Name] = pis;
             }
             while (pis.length <= this.props.currentIteration) {
-                pis.push(DefaultStudentProjectIteration());
+                pis.push({tasks: []});
             }
             const rands = this.threeRands(tasks.length);
             const tags = rands.map(ind => tasks[ind]);
-            pis[this.props.currentIteration] = {
-                name1: tags[0].tag,
-                name2: tags[1].tag,
-                name3: tags[2].tag,
-                count1: 0,
-                count2: 0,
-                count3: 0
-            };
+            pis[this.props.currentIteration].tasks = [
+                {
+                    name: tags[0].tag,
+                    count: 0
+                },
+                {
+                    name: tags[1].tag,
+                    count: 0
+                },
+                {
+                    name: tags[2].tag,
+                    count: 0
+                },
+            ];
             console.log(pis[pis.length - 1]);
         });
         this.props.updateSPIData(newSPIData);

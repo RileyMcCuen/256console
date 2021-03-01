@@ -1,6 +1,7 @@
 import AWS, {AWSError} from 'aws-sdk';
 import {GetAccountBalanceResponse} from "aws-sdk/clients/mturk";
 import {Region} from "./aws-constants";
+import {Data, MTurkMode} from "./actions";
 
 type MTurkAccounts = { [wustlKey: string]: AWS.MTurk };
 export type AccountPair = {wustlKey: string, balance: string};
@@ -8,6 +9,8 @@ export type TAccountBalances = AccountPair[];
 
 class MTurkPool {
     private accts: MTurkAccounts = {};
+    private sandboxAccts: MTurkAccounts = {};
+    private realAccts: MTurkAccounts = {};
     private static HitConfig(url: string): string {
         return `<?xml version="1.0" encoding="UTF-8"?>
                     <ExternalQuestion xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd">
@@ -17,7 +20,15 @@ class MTurkPool {
     }
 
     add(wustlKey: string, accessID: string, accessSecret: string) {
-        this.addAccount(wustlKey, new AWS.MTurk({
+        this.addRealAccount(wustlKey, new AWS.MTurk({
+            region: Region,
+            endpoint: 'https://mturk-requester.us-east-1.amazonaws.com',
+            credentials: {
+                accessKeyId: accessID,
+                secretAccessKey: accessSecret
+            }
+        }));
+        this.addSandboxAccount(wustlKey, new AWS.MTurk({
             region: Region,
             endpoint: 'https://mturk-requester-sandbox.us-east-1.amazonaws.com',
             credentials: {
@@ -27,8 +38,20 @@ class MTurkPool {
         }));
     }
 
-    addAccount(wustlKey: string, acct: AWS.MTurk) {
-        this.accts[wustlKey] = acct;
+    addRealAccount(wustlKey: string, acct: AWS.MTurk) {
+        this.realAccts[wustlKey] = acct;
+    }
+
+    addSandboxAccount(wustlKey: string, acct: AWS.MTurk) {
+        this.sandboxAccts[wustlKey] = acct;
+    }
+
+    private setSandbox(sandbox: MTurkMode) {
+        if (sandbox === MTurkMode.SANDBOX) {
+            this.accts = this.sandboxAccts;
+        } else {
+            this.accts = this.realAccts;
+        }
     }
 
     private forp<E>(fun: (wustlKey: string, acct: AWS.MTurk) => E): E[] {
@@ -49,7 +72,8 @@ class MTurkPool {
         });
     }
 
-    async getAccountBalances() {
+    async getAccountBalances(sandbox: MTurkMode) {
+        this.setSandbox(sandbox);
         return this.forp(async (wustlKey, acct) => {
             return this.getAccountBalance(wustlKey, acct);
         });
@@ -59,7 +83,8 @@ class MTurkPool {
 
     }
 
-    async uploadHits(urls: {[wustlKey: string]: {count: number, url: string}[]}) {
+    async uploadHits(urls: {[wustlKey: string]: {count: number, url: string, price: string}[]}, sandbox: MTurkMode) {
+        this.setSandbox(sandbox);
         return this.forp(async (wustlKey, acct) => {
             return new Promise<AccountPair>((resolve, reject) => {
                 const urlsForStud = urls[wustlKey];
@@ -72,7 +97,7 @@ class MTurkPool {
                                     Description: 'You will be given a scenario for a website user. Please navigate through the website to find the answer - your path is tracked as you work. When you are on the page with the answer, fill out the text box in the drop down at the top of the page and click submit. Correct answers will receive bonuses of up to $.25.',
                                     LifetimeInSeconds: (60 * 60 * 20), // 20 hours
                                     MaxAssignments: urlCountPair.count,
-                                    Reward: "0.40",
+                                    Reward: urlCountPair.price,
                                     Title: "Information Foraging WUSTL",
                                     Question: MTurkPool.HitConfig(urlCountPair.url)
                                 },
@@ -114,6 +139,56 @@ class MTurkPool {
                 });
             });
         });
+    }
+
+    async payHits(data: Data) {
+        for (let i = 0; i < data.values.length; i++) {
+            const row = data.values[i];
+            const acct = this.accts[row[0]];
+            let resp;
+            try {
+                if (acct != undefined) {
+                    switch (row[3]) {
+                        case 'approve':
+                            resp = await acct.approveAssignment({
+                                AssignmentId: row[2],
+                            }).promise();
+                            console.log(resp.$response);
+                            break;
+                        case 'reject':
+                            resp = await acct.rejectAssignment({
+                                AssignmentId: row[2],
+                                RequesterFeedback: 'The log of your actions on the website and the written response did not show substantial effort in completing this task and therefore do not warrant payment.'
+                            }).promise();
+                            console.log(resp.$response);
+                            break;
+                        case 'bonus':
+                            resp = await acct.approveAssignment({
+                                AssignmentId: row[2],
+                            }).promise();
+                            console.log(resp.$response);
+                            resp = await acct.sendBonus({
+                                AssignmentId: row[2],
+                                WorkerId: row[1],
+                                BonusAmount: '0.10',
+                                Reason: 'Your work showed an honest effort to complete the task and you either found the correct answer or put in strong logical thought in your actions. Thank your for your time, and we hope this bonus makes the HIT feel more worthwhile.',
+                                UniqueRequestToken: ''
+                            }).promise();
+                            console.log(resp.$response);
+                            break;
+                        default:
+                            console.log(row);
+                            console.log('^^ the above row did not contain a valid action ^^');
+                            break;
+                    }
+                } else {
+                    console.log(row);
+                    console.log('^^ row was undefined ^^');
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        }
     }
 }
 

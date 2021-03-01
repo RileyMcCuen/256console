@@ -1,17 +1,22 @@
 import React from "react";
 import { connect, ConnectedProps } from 'react-redux'
-import {RootState, StudentProjectIteration} from "./actions";
+import {Data, RootState, StudentProjectIteration, updateCSVData, updateSPIData} from "./actions";
+const csvp = require('csv-parse');
 
 const mapState = (state: RootState) => {
     return {
         currentProject: state.currentProject,
         currentIteration: state.currentIteration,
         spiData: state.spiData,
-        students: state.students
+        students: state.students,
+        csvData: state.csvData
     }
 };
 
-const mapDispatchToProps = {};
+const mapDispatchToProps = {
+    updateSPIData,
+    updateCSVData
+};
 
 const connector = connect(mapState, mapDispatchToProps);
 
@@ -19,116 +24,270 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 
 type Props = PropsFromRedux & {};
 
-class Table extends React.Component<Props, {displayTable: boolean}> {
+type State = {
+    input: string;
+    displayTable: boolean;
+    compiler: Compiler;
+}
 
-    private tableRef = React.createRef<HTMLTableElement>();
+type Condition = (input: string[]) => boolean;
+
+function createCond(index: number, value: string) {
+    return (input: string[]) => input[index] === value;
+}
+
+class Compiler {
+
+    private static instance = new Compiler();
+
+    private data: Data | null;
+    private filterExpr: string | null;
+
+    constructor() {
+        this.data = null;
+        this.filterExpr = null;
+    }
+
+    setData(data: Data | null) {
+        this.data = data;
+        return this;
+    }
+
+    setFilterExpression(expr: string | null) {
+        this.filterExpr = expr;
+        return this;
+    }
+
+    static I() {
+        return Compiler.instance;
+    }
+
+    private lex() {
+        if (this.filterExpr === null) {
+            throw new Error('filter expression has not been set yet, therefore lex cannot be called yet');
+        }
+        return this
+            .filterExpr
+            .trim()
+            .split(' ')
+            .map(tok => tok.trim())
+            .filter(tok => tok !== '');
+    }
+
+    private key(k: string) {
+        if (this.data === null) {
+            throw new Error('data has not been set yet, therefore key cannot be called yet');
+        }
+        if (k === '&&' || k === '==') {
+            throw new Error('invalid key supplied (special symbol was provided instead of a key)');
+        }
+        const ind = this.data.header.indexOf(k);
+        console.log(k, ind);
+        if (ind === -1) {
+            throw new Error('invalid key supplied');
+        }
+        return ind;
+    }
+
+    private eq(k: string) {
+        if (k !== '==') {
+            throw new Error('invalid equality detected');
+        }
+    }
+
+    private value(k: string) {
+        if (k === '&&' || k === '==') {
+            throw new Error('invalid value supplied (special symbol was provided instead of a value)');
+        }
+        return k;
+    }
+
+    private amper(k: string) {
+        if (k !== '&&') {
+            throw new Error('invalid expression connector detected');
+        }
+    }
+
+    private parse(tokens: string[]): Condition[] {
+        if (tokens.length < 3) {
+            throw new Error('cannot parse expression with less than 3 tokens')
+        }
+        if (tokens.length % 2 !== 1) {
+            throw new Error('cannot parse expression with even number of tokens');
+        }
+        let conds: Condition[] = [];
+        let ind = -1;
+        let val = '';
+        tokens.forEach((tok, i) => {
+            switch (i % 4) {
+                case 0:
+                    ind = this.key(tok);
+                    break;
+                case 1:
+                    this.eq(tok);
+                    break;
+                case 2:
+                    val = this.value(tok);
+                    conds.push(createCond(ind, val));
+                    break;
+                case 3:
+                    this.amper(tok);
+                    break;
+                default:
+                    throw new Error('i dont know how i got here, and should not have');
+            }
+
+        });
+        return conds;
+    }
+
+    private evaluate(conditions: Condition[]): string[][] {
+        if (this.data === null) {
+            throw new Error('data is null, cannot evaluate a an expression without any data')
+        }
+        const ret = this.data.values.filter(row => {
+            return conditions.map(cond => cond(row)).every(cond => cond);
+        });
+        return ret;
+    }
+
+    execute (): string[][] {
+        return this.evaluate(this.parse(this.lex()));
+    }
+}
+
+class Table extends React.Component<Props, State> {
+
+    private fileInput = React.createRef<HTMLInputElement>();
 
     constructor(props: Props) {
         super(props);
         this.state = {
-            displayTable: false
+            input: '',
+            displayTable: false,
+            compiler: new Compiler().setData(this.props.csvData)
         };
     }
 
-    render() {
-        return (
-            <div className={'table-container'}>
-                <div className={'table-description'}>
-                    <button
-                        className={'right safe'}
-                        onClick={() => {
-                            this.setState({displayTable: !this.state.displayTable});
-                        }}
-                    >
-                        Display
-                    </button>
-                    <h2>
-                        {this.props.currentProject.Name} : {this.props.currentIteration + 1}
-                    </h2>
-                    <p>
-                        Below is the data collected for iteration [{this.props.currentIteration + 1}] of project [{this.props.currentProject.Name}].
-                    </p>
-                </div>
-                <table className={this.state.displayTable ? '' : 'hide'} ref={this.tableRef}>
-                    <thead>
-                        <tr>
-                        <th>
-                            WUSTL Key
-                        </th>
-                        <th>
-                            HIT 1
-                        </th>
-                        <th>
-                            HIT 1 Count
-                        </th>
-                        <th>
-                            HIT 2
-                        </th>
-                        <th>
-                            Hit 2 Count
-                        </th>
-                        <th>
-                            HIT 3
-                        </th>
-                        <th>
-                            Hit 3 Count
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {
-                        this.props.students.map((student, index) => {
-                            let spiData: StudentProjectIteration = {
-                                name1: 'none',
-                                name2: 'none',
-                                name3: 'none',
-                                count1: 0,
-                                count2: 0,
-                                count3: 0
-                            };
-                            if (this.props.spiData) {
-                                const spiDataForStud = this.props.spiData[student.wustlKey];
-                                if (spiDataForStud !== undefined) {
-                                    const projDataForStud = spiDataForStud[this.props.currentProject.Name];
-                                    if (projDataForStud !== undefined) {
-                                        const iterDataForStud = projDataForStud[this.props.currentIteration];
-                                        if (iterDataForStud !== undefined) {
-                                            spiData = iterDataForStud;
-                                        }
+    updateCSVData(csv: string[][]) {
+        let header: string[];
+        let values: string[][];
+        try {
+            header = csv[0];
+            values = csv.slice(1);
+        } catch (e) {
+            alert(e);
+            header = [];
+            values = [];
+        }
+        this.props.updateCSVData(new Data(header, values));
+    }
+
+    renderFileInput() {
+            return (
+                <form>
+                    <input
+                        ref={this.fileInput}
+                        type={"file"}
+                        accept={"text/csv"}
+                        className={"input-file"}
+                        name={"csv-input"}
+                        id={"csv-input"}
+                        onChange={event => {
+                            const file = event.target.files?.item(0);
+                            if (file) {
+                                const fr = new FileReader();
+                                fr.onloadend = () => {
+                                    if (fr.readyState === FileReader.DONE) {
+                                        csvp(fr.result, {}, (err: any, out: string[][]) => {
+                                            if (err) {
+                                                alert(`Could not parse file correctly. Error: ${err}.`)
+                                            } else {
+                                                this.updateCSVData(out);
+                                            }
+                                        });
                                     }
-                                }
+                                };
+                                fr.readAsText(file, 'utf-8');
                             }
-                            return (
-                                <tr key={index}>
-                                    <th>
-                                        {student.wustlKey}
-                                    </th>
-                                    <td>
-                                        {spiData.name1}
-                                    </td>
-                                    <td>
-                                        {spiData.count1}
-                                    </td>
-                                    <td>
-                                        {spiData.name2}
-                                    </td>
-                                    <td>
-                                        {spiData.count2}
-                                    </td>
-                                    <td>
-                                        {spiData.name3}
-                                    </td>
-                                    <td>
-                                        {spiData.count3}
-                                    </td>
-                                </tr>
-                            );
-                        })
-                    }
-                    </tbody>
-                </table>
+                        }}
+                    />
+                    <label
+                        className={"csv-input"}
+                        htmlFor={"csv-input"}
+                    >
+                        Input File of HIT Assignments here...
+                    </label>
+                </form>
+            );
+    }
+    render() {
+        let dispData = [];
+        try {
+            dispData = this.state.compiler.setData(this.props.csvData).execute();
+        } catch (e) {
+            // console.log(e);
+            dispData = this.props.csvData.values;
+        }
+        return (
+            <div className={"status-container"}>
+                {this.renderFileInput()}
+                <input
+                    type={"text"}
+                    value={this.state.input}
+                    className={"filter-input"}
+                    onChange={ev => {
+                        this.state.compiler.setFilterExpression(ev.target.value);
+                        this.setState({input: ev.target.value});
+                    }}
+                    placeholder={"Enter your data filter expression here..."}
+                />
+                <DataTable data={new Data(this.props.csvData.header, dispData)} />
             </div>
         );
+    }
+
+}
+
+export class DataTable extends React.Component<{data: Data}, any> {
+
+    render() {
+        if (this.props.data === undefined || this.props.data === null || this.props.data.header.length === 0) {
+            return (
+                <div>
+                    <h2> No data to display. </h2>
+                </div>
+            );
+        }
+        return <table className={"hit-data"}>
+            <thead>
+            <tr>
+                {
+                    this
+                        .props
+                        .data
+                        .header
+                        .map((key, index) => <th key={key+index}>{key}</th>)
+                }
+            </tr>
+            </thead>
+            <tbody>
+            {
+                this
+                    .props
+                    .data
+                    .values
+                    .map((row, index) =>
+                        <tr key={index}>
+                            {
+                                row
+                                    .map((val, index) => <td key={val+index}>{val}</td>)
+                            }
+                        </tr>
+                    )
+            }
+            </tbody>
+        </table>
     }
 
 }

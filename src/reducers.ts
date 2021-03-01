@@ -1,16 +1,19 @@
 import {
+    Data,
     EDBStatus,
     LOGIN,
     LoginStatus,
     LOGOUT,
+    MTurkMode,
     RootState,
     SPIData,
     Student,
     UPDATE_BALANCES,
+    UPDATE_CSV_DATA,
     UPDATE_CURRENT_ITERATION,
     UPDATE_CURRENT_PROJECT,
     UPDATE_DB_STATUS,
-    UPDATE_ITERATIONS,
+    UPDATE_ITERATIONS, UPDATE_MTURK_MODE,
     UPDATE_PROJECTS,
     UPDATE_SPI_DATA,
     UPDATE_STUDENTS
@@ -39,6 +42,8 @@ const defaultState: RootState = {
     spiData: null,
     students: [],
     accountBalances: [],
+    csvData: new Data([], []),
+    mturkMode: MTurkMode.SANDBOX,
 };
 
 export function rootReducer(state=defaultState, action: any){
@@ -95,9 +100,18 @@ export function rootReducer(state=defaultState, action: any){
             });
         case UPDATE_BALANCES:
             const ub = action as {accountBalances: TAccountBalances};
-            console.log(ub.accountBalances);
             return reducerHelper({
                 accountBalances: ub.accountBalances,
+            });
+        case UPDATE_CSV_DATA:
+            const ucd = action as {csvData: Data};
+            return reducerHelper({
+                csvData: ucd.csvData
+            });
+        case UPDATE_MTURK_MODE:
+            const umm = action as {mturkMode: MTurkMode};
+            return reducerHelper({
+                mturkMode: umm.mturkMode
             });
         default:
             return state;

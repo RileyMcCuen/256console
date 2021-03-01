@@ -11,6 +11,7 @@ import AccountBalances from "./account-balances";
 import SubmitHits from "./submit-hits";
 import CancelHits from "./cancel-hits";
 import DownloadZip from "./download-zip";
+import PayHits from "./pay-hits";
 
 type TabRef = {tab: Tab | undefined}
 
@@ -181,6 +182,12 @@ export class HitManagementTab extends React.Component<ConcreteTabProps, {}> {
                         name: 'Download Logs',
                         description: 'Allows you to download all logs for a given project and iteration.',
                         component: <DownloadZip />
+                    },
+                    {
+                        urlName: 'pay_hits',
+                        name: 'Pay HITs',
+                        description: 'Allows you to pay hits if given a csv file of payment details.',
+                        component: <PayHits />
                     }
                 ]}
         >
@@ -222,7 +229,7 @@ export class SessionManagementTab extends React.Component<ConcreteTabProps, {}> 
                                     description={'This will download a CSV Template that you can then fill out with student credentials. This template has correctly spelt and formatted headers so that there are no validation errors when uploading it later.'}
                                     buttonClass={'safe'}
                                     onClick={() => {
-                                        const uri = 'data:text/plain;charset=utf-8,' + encodeURIComponent("WUSTL Key,AWS IAM ID, AWS IAM SECRET\n");
+                                        const uri = 'data:text/plain;charset=utf-8,' + encodeURIComponent("WUSTL Key,AWS IAM ID,AWS IAM SECRET\n");
                                         const a = document.createElement('a');
                                         a.style.display = 'none';
                                         a.href = uri;

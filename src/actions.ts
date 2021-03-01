@@ -1,6 +1,7 @@
 import {table, ClassTable, ProjectDescription, Task} from "./db";
 import MTPool, {TAccountBalances} from "./mturk";
 import {store} from "./store";
+import {Parser} from "papaparse";
 
 export enum EDBStatus {
     Unknown,
@@ -19,25 +20,42 @@ export const UPDATE_CURRENT_ITERATION = 'UPDATE_CURRENT_ITERATION';
 export const UPDATE_SPI_DATA = 'UPDATE_SPI_DATA';
 export const UPDATE_STUDENTS = 'UPDATE_STUDENTS';
 export const UPDATE_BALANCES = 'UPDATE_BALANCES';
+export const UPDATE_CSV_DATA = 'UPDATE_CSV_DATA';
+export const UPDATE_MTURK_MODE = 'UPDATE_MTURK_MODE';
 
-export interface StudentProjectIteration {
-    name1: string;
-    name2: string;
-    name3: string;
-    count1: number;
-    count2: number;
-    count3: number;
+export class Data {
+    header: string[];
+    values: string[][];
+
+    constructor(header: string[], values: string[][]) {
+        this.header = header;
+        this.values = values;
+    }
+
+    indexOfHeader(key: string) {
+        return this.header.indexOf(key);
+    }
+
+    findFirstEntry(query: {index: number, expectedValue: string}[]) {
+        const ret = this.values.find(row => {
+            return query.every(queryTerm => {
+                if (row[queryTerm.index] === queryTerm.expectedValue) {
+                    return true;
+                }
+                return false;
+            });
+        });
+        return ret;
+    }
 }
 
-export function DefaultStudentProjectIteration(): StudentProjectIteration {
-    return {
-        name1: 'none',
-        name2: 'none',
-        name3: 'none',
-        count1: 0,
-        count2: 0,
-        count3: 0
-    }
+export interface StudentProjectIterationTask {
+    name: string;
+    count: number;
+}
+
+export interface StudentProjectIteration {
+    tasks: StudentProjectIterationTask[];
 }
 
 export interface SPIData {
@@ -63,6 +81,11 @@ export interface Tasks {
     [projectName: string]: Task[]
 }
 
+export enum MTurkMode {
+    SANDBOX,
+    REAL
+}
+
 export interface RootState {
     loggedIn: LoginStatus;
     dbStatus: EDBStatus;
@@ -73,6 +96,8 @@ export interface RootState {
     spiData: null | SPIData;
     students: Student[];
     accountBalances: TAccountBalances;
+    csvData: Data;
+    mturkMode: MTurkMode;
 }
 
 export const login = () => {
@@ -151,6 +176,20 @@ export const updateBalances = (accountBalances: TAccountBalances) => {
     };
 }
 
+export const updateCSVData = (csvData: Data) => {
+    return {
+        type: UPDATE_CSV_DATA,
+        csvData
+    }
+}
+
+export const updateMTurkMode = (mturkMode: MTurkMode) => {
+    return {
+        type: UPDATE_MTURK_MODE,
+        mturkMode
+    }
+}
+
 export const fetchProjects = () => {
     return async (dispatch: any) => {
         try {
@@ -169,10 +208,10 @@ export const fetchSPIData = () => {
     }
 }
 
-export const fetchAccountBalances = () => {
+export const fetchAccountBalances = (sandbox: MTurkMode) => {
     return async(dispatch: any) => {
         try {
-            const balances = await Promise.all(await MTPool.getAccountBalances());
+            const balances = await Promise.all(await MTPool.getAccountBalances(sandbox));
             console.log(balances)
             dispatch(updateBalances(balances));
         } catch (e) {console.log(e);}

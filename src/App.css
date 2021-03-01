@@ -92,6 +92,15 @@ button.safe {
     color: white;
 }
 
+button.safe.active:hover {
+    background-color: #165d26;
+}
+
+button.safe.active {
+    background-color: #1b7930;
+    color: white;
+}
+
 button.safe:hover {
     background-color: #24983f;
 }
@@ -144,7 +153,7 @@ button.info:hover {
     z-index: -1;
 }
 
-label.student-input {
+label.student-input, label.csv-input {
     font-size: 24px;
     text-align: center;
     display: block;
@@ -156,7 +165,7 @@ label.student-input {
     background-color: #0388FC;
 }
 
-label.student-input:hover {
+label.student-input:hover, label.csv-input:hover {
     background-color: #0281F0;
 }
 
@@ -629,3 +638,50 @@ table.component td.not-ready {
     padding: 40px 0;
 }
 
+input.filter-input {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 10px 0;
+}
+
+table.hit-data {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table.hit-data th, table.hit-data td {
+    border: 2px solid lightgray;
+    padding: 5px;
+}
+
+div.toggle-container {
+    display: flex;
+    width: 100%;
+}
+
+div.toggle-container > button.toggle:first-child {
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+
+div.toggle-container > button.toggle:last-child{
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+button.toggle {
+    width: 50%;
+    flex-grow: 1;
+    border-radius: 0;
+}
+
+.payment-input {
+    width: 100%;
+    display: flex;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.payment-input > input {
+    flex: 1;
+}
