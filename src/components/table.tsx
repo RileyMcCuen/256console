@@ -1,6 +1,13 @@
 import React from "react";
 import { connect, ConnectedProps } from 'react-redux'
-import {Data, RootState, StudentProjectIteration, updateCSVData, updateSPIData} from "./actions";
+import {
+    Data,
+    RootState,
+    StudentProjectIteration,
+    updateSubmitHITData,
+    updateSPIData,
+    SubmitHITDataType
+} from "../redux/actions";
 const csvp = require('csv-parse');
 
 const mapState = (state: RootState) => {
@@ -9,13 +16,13 @@ const mapState = (state: RootState) => {
         currentIteration: state.currentIteration,
         spiData: state.spiData,
         students: state.students,
-        csvData: state.csvData
+        submitHITData: state.submitHITData
     }
 };
 
 const mapDispatchToProps = {
     updateSPIData,
-    updateCSVData
+    updateSubmitHITData
 };
 
 const connector = connect(mapState, mapDispatchToProps);
@@ -165,22 +172,37 @@ class Table extends React.Component<Props, State> {
         this.state = {
             input: '',
             displayTable: false,
-            compiler: new Compiler().setData(this.props.csvData)
+            compiler: new Compiler().setData(this.props.submitHITData.data)
         };
     }
 
     updateCSVData(csv: string[][]) {
-        let header: string[];
-        let values: string[][];
+        let header: string[] = [];
+        let values: string[][] = [];
         try {
-            header = csv[0];
-            values = csv.slice(1);
+            if (csv.length >= 2) {
+                header = csv[0];
+                values = csv.slice(1);
+            }
         } catch (e) {
             alert(e);
             header = [];
             values = [];
         }
-        this.props.updateCSVData(new Data(header, values));
+        let dt = undefined;
+        if (
+            header.length === 3 &&
+            ['WUSTL Key', 'Task Tag', 'Count'].every(hk => header.includes(hk))
+        ) {
+            this.props.updateSubmitHITData({dataType: SubmitHITDataType.COUNT_GIVEN, data: new Data(header, values)});
+        } else if (
+            header.length === 4 &&
+            ['WUSTL Key', 'Task 1', 'Task 2', 'Task 3'].every(hk => header.includes(hk))
+        ) {
+            this.props.updateSubmitHITData({dataType: SubmitHITDataType.COUNT_NOT_GIVEN, data: new Data(header, values)});
+        } else {
+            alert('CSV is in invalid format. Cannot load the given file.')
+        }
     }
 
     renderFileInput() {
@@ -223,11 +245,14 @@ class Table extends React.Component<Props, State> {
     }
     render() {
         let dispData = [];
+        console.log(this.props.submitHITData)
+        console.log(this.props.submitHITData.data)
+        console.log(this.props.submitHITData.dataType)
         try {
-            dispData = this.state.compiler.setData(this.props.csvData).execute();
+            dispData = this.state.compiler.setData(this.props.submitHITData.data).execute();
         } catch (e) {
             // console.log(e);
-            dispData = this.props.csvData.values;
+            dispData = this.props.submitHITData.data.values;
         }
         return (
             <div className={"status-container"}>
@@ -242,7 +267,7 @@ class Table extends React.Component<Props, State> {
                     }}
                     placeholder={"Enter your data filter expression here..."}
                 />
-                <DataTable data={new Data(this.props.csvData.header, dispData)} />
+                <DataTable data={new Data(this.props.submitHITData.data.header, dispData)} />
             </div>
         );
     }

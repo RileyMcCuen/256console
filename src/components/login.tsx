@@ -1,7 +1,7 @@
-import {RootState, login, logout} from "./actions";
+import {RootState, login, logout} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
 import React from "react";
-import {awsLogin, awsLogout} from "./aws-service";
+import {awsLogin, awsLogout} from "../aws/aws-service";
 
 const mapState = (state: RootState) => {
     return {};

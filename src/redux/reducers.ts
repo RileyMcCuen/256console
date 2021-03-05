@@ -7,19 +7,20 @@ import {
     MTurkMode,
     RootState,
     SPIData,
-    Student,
+    Student, SubmitHITData,
+    SubmitHITDataType,
     UPDATE_BALANCES,
-    UPDATE_CSV_DATA,
     UPDATE_CURRENT_ITERATION,
     UPDATE_CURRENT_PROJECT,
     UPDATE_DB_STATUS,
-    UPDATE_ITERATIONS, UPDATE_MTURK_MODE,
+    UPDATE_ITERATIONS,
+    UPDATE_MTURK_MODE,
     UPDATE_PROJECTS,
     UPDATE_SPI_DATA,
-    UPDATE_STUDENTS
+    UPDATE_STUDENTS, UPDATE_SUBMIT_HIT_DATA
 } from "./actions";
-import {ProjectDescription} from "./db";
-import {TAccountBalances} from "./mturk";
+import {ProjectDescription} from "../aws/db";
+import {TAccountBalances} from "../aws/mturk";
 
 // const defaultState: RootState = {
 //     loggedIn: false,
@@ -42,7 +43,7 @@ const defaultState: RootState = {
     spiData: null,
     students: [],
     accountBalances: [],
-    csvData: new Data([], []),
+    submitHITData: {dataType: SubmitHITDataType.COUNT_NOT_GIVEN, data: new Data([], [])},
     mturkMode: MTurkMode.SANDBOX,
 };
 
@@ -103,10 +104,11 @@ export function rootReducer(state=defaultState, action: any){
             return reducerHelper({
                 accountBalances: ub.accountBalances,
             });
-        case UPDATE_CSV_DATA:
-            const ucd = action as {csvData: Data};
+        case UPDATE_SUBMIT_HIT_DATA:
+            const ushd = action as {submitHITData: SubmitHITData};
+            console.log(ushd)
             return reducerHelper({
-                csvData: ucd.csvData
+                submitHITData: ushd.submitHITData,
             });
         case UPDATE_MTURK_MODE:
             const umm = action as {mturkMode: MTurkMode};

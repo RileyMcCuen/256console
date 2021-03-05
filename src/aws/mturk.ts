@@ -1,12 +1,18 @@
 import AWS, {AWSError} from 'aws-sdk';
 import {GetAccountBalanceResponse} from "aws-sdk/clients/mturk";
 import {Region} from "./aws-constants";
-import {Data, MTurkMode} from "./actions";
+import {Data, MTurkMode} from "../redux/actions";
 
 type MTurkAccounts = { [wustlKey: string]: AWS.MTurk };
 export type AccountPair = {wustlKey: string, balance: string};
 export type TAccountBalances = AccountPair[];
 
+type AWSTableError = {
+    wustlKey: string,
+    error: string,
+    code: string,
+    message: string,
+};
 class MTurkPool {
     private accts: MTurkAccounts = {};
     private sandboxAccts: MTurkAccounts = {};
@@ -86,35 +92,44 @@ class MTurkPool {
     async uploadHits(urls: {[wustlKey: string]: {count: number, url: string, price: string}[]}, sandbox: MTurkMode) {
         this.setSandbox(sandbox);
         return this.forp(async (wustlKey, acct) => {
-            return new Promise<AccountPair>((resolve, reject) => {
+            return new Promise<AccountPair | AWSTableError>((resolve, reject) => {
                 const urlsForStud = urls[wustlKey];
-                urlsForStud.forEach(async urlCountPair => {
-                    if (urlCountPair.count > 0) {
-                        setTimeout(async () => {
-                            acct.createHIT({ // TODO: fix this to be generalizable config
-                                    AssignmentDurationInSeconds: 360,
-                                    AutoApprovalDelayInSeconds: 2592000,
-                                    Description: 'You will be given a scenario for a website user. Please navigate through the website to find the answer - your path is tracked as you work. When you are on the page with the answer, fill out the text box in the drop down at the top of the page and click submit. Correct answers will receive bonuses of up to $.25.',
-                                    LifetimeInSeconds: (60 * 60 * 20), // 20 hours
-                                    MaxAssignments: urlCountPair.count,
-                                    Reward: urlCountPair.price,
-                                    Title: "Information Foraging WUSTL",
-                                    Question: MTurkPool.HitConfig(urlCountPair.url)
-                                },
-                                async (err, data) => {
-                                    if (err) {
-                                        console.log("ERROR: " + err);
-                                    } else {
-                                        console.log("DATA: " + data);
-                                    }
-                                    resolve({
-                                        wustlKey: wustlKey,
-                                        balance: (await acct.getAccountBalance().promise()).AvailableBalance as string,
+                if (urlsForStud) {
+                    urlsForStud.forEach(async urlCountPair => {
+                        // console.log(wustlKey + ' ' + urlCountPair.url + ' ' + urlCountPair.count);
+                        if (urlCountPair.count > 0) {
+                            setTimeout(async () => {
+                                acct.createHIT({ // TODO: fix this to be generalizable config
+                                        AssignmentDurationInSeconds: 360,
+                                        AutoApprovalDelayInSeconds: 2592000,
+                                        Description: 'You will be given a scenario for a website user. Please navigate through the website to find the answer - your path is tracked as you work. When you are on the page with the answer, fill out the text box in the drop down at the top of the page and click submit. Correct answers will receive bonuses of up to $.25.',
+                                        LifetimeInSeconds: (60 * 60 * 20), // 20 hours
+                                        MaxAssignments: urlCountPair.count,
+                                        Reward: urlCountPair.price,
+                                        Title: "Information Foraging WUSTL",
+                                        Question: MTurkPool.HitConfig(urlCountPair.url)
+                                    },
+                                    async (err, data) => {
+                                        if (err) {
+                                            console.log("ERROR: " + err);
+                                            resolve({
+                                                wustlKey: wustlKey,
+                                                error: err.name,
+                                                code: err.code,
+                                                message: err.message
+                                            });
+                                        } else {
+                                            console.log("DATA: " + data);
+                                            resolve({
+                                                wustlKey: wustlKey,
+                                                balance: (await acct.getAccountBalance().promise()).AvailableBalance as string,
+                                            });
+                                        }
                                     });
-                                });
-                        },100);
-                    }
-                });
+                            },100);
+                        }
+                    });
+                }
             });
         });
     }
@@ -189,6 +204,47 @@ class MTurkPool {
                 console.log(e);
             }
         }
+    }
+
+    async getStatuses(sandbox: MTurkMode) {
+        this.setSandbox(sandbox);
+        let data = new Data(['WUSTL Key', 'Awaiting Acceptance', 'In Progress', 'Completed'], []);
+        let promises = this.forp(async (key: string, acct: AWS.MTurk) => {
+            let entry = [key, 0, 0, 0];
+            const hits = (await acct.listHITs().promise()).HITs;
+            if (hits && hits.length > 0) {
+                const as = hits.map(hit => hit.MaxAssignments ? hit.MaxAssignments : 0).reduce((prev: number, cur: number) => prev + cur, 0);
+                hits.forEach(hit => {
+                    const available = hit.NumberOfAssignmentsAvailable ? hit.NumberOfAssignmentsAvailable : 0;
+                    const pending = hit.NumberOfAssignmentsPending ? hit.NumberOfAssignmentsPending : 0;
+                    let completed = hit.MaxAssignments ? hit.MaxAssignments : 0;
+                    completed -= (available + pending);
+                    completed = Math.max(completed, 0);
+                    switch (hit.HITStatus) {
+                        case "Assignable":
+                            (entry[1] as number) += available;
+                            break;
+                        case "Unassignable":
+                            (entry[2] as number) += pending;
+                            break;
+                        case "Reviewable":
+                            (entry[3] as number) += completed;
+                            break;
+                        default:
+                            break;
+                    }
+                });
+            }
+            let sEntry = entry.map(item => item + '');
+            data.values.push(sEntry);
+            return true;
+        });
+        if (promises) {
+            for (let promise of promises) {
+                await promise;
+            }
+        }
+        return data;
     }
 }
 

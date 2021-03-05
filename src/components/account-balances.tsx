@@ -1,8 +1,9 @@
 import React from "react";
-import {AccountPair} from "./mturk";
-import {fetchAccountBalances, RootState} from "./actions";
+import {AccountPair} from "../aws/mturk";
+import {fetchAccountBalances, RootState} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
-import {store} from "./store";
+import {store} from "../redux/store";
+import {SandboxToggle} from "./toggle";
 
 export const mapState = (state: RootState) => {
     return {
@@ -36,6 +37,7 @@ class AccountBalances extends React.Component<Props, State> {
         return (
             <div>
                 <button className={"act basic refresh"} onClick={() => store.dispatch(fetchAccountBalances(this.props.mturkMode))}> Refresh </button>
+                <SandboxToggle />
                 <table className={"component"}>
                     <thead>
                         <tr>

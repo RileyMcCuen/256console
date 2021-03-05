@@ -1,7 +1,7 @@
 import React from "react";
-import {RootState, updateCurrentIteration, updateCurrentProject} from "./actions";
+import {RootState, updateCurrentIteration, updateCurrentProject} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
-import {ProjectDescription} from "./db";
+import {ProjectDescription} from "../aws/db";
 
 export const mapState = (state: RootState) => {
     return {

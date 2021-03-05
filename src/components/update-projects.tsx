@@ -1,8 +1,8 @@
 import React from "react";
 import {connect, ConnectedProps} from 'react-redux'
-import {RootState, updateProjects} from "./actions";
-import {store} from "./store";
-import {ProjectDescription, table, Task} from "./db";
+import {RootState, updateProjects} from "../redux/actions";
+import {store} from "../redux/store";
+import {ProjectDescription, table, Task} from "../aws/db";
 import {FileDrop} from "react-file-drop";
 
 const mapState = (state: RootState) => {

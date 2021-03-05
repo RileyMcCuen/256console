@@ -1,10 +1,10 @@
 import React from 'react';
 import './App.css';
-import {HitManagementTab, PostHitManagementTab, SemesterManagementTab, SessionManagementTab, Tab} from "./tab";
-import {login, LoginStatus, logout, RootState} from "./actions";
+import {HitManagementTab, PostHitManagementTab, SemesterManagementTab, SessionManagementTab, Tab} from "../components/tab";
+import {login, LoginStatus, logout, RootState} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
-import {Login} from "./login";
-import {awsLogin} from "./aws-service";
+import {Login} from "../components/login";
+import {awsLogin} from "../aws/aws-service";
 
 enum NavLocation {
     SessionManagement = 'session',

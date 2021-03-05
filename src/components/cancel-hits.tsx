@@ -1,7 +1,7 @@
 import React from "react";
-import {RootState} from "./actions";
+import {RootState} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
-import MTPool from "./mturk";
+import MTPool from "../aws/mturk";
 
 export const mapState = (state: RootState) => {
     return {

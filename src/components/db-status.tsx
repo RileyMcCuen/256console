@@ -1,7 +1,7 @@
 import React from "react";
 import {connect, ConnectedProps} from 'react-redux'
-import {EDBStatus, RootState, updateDBStatus} from "./actions";
-import {table} from "./db";
+import {EDBStatus, RootState, updateDBStatus} from "../redux/actions";
+import {table} from "../aws/db";
 
 const mapState = (state: RootState) => {
     return {

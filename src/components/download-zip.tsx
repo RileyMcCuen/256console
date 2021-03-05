@@ -1,6 +1,6 @@
 import React from "react";
-import {downloadAllFiles} from "./aws-service";
-import {RootState} from "./actions";
+import {downloadAllFiles} from "../aws/aws-service";
+import {RootState} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
 import ButtonWithDescription from "./button-with-description";
 

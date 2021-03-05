@@ -2,8 +2,8 @@ import {AuthenticationDetails, CognitoUser, CognitoUserPool, CognitoUserSession}
 import { AwsClient } from 'aws4fetch';
 import {AppJSONHeaders, BaseURL, METHODS, Region} from "./aws-constants";
 import {createTable as dbCreateTable} from "./db";
-import {fetchProjects, fetchSPIData} from "./actions";
-import {store} from "./store";
+import {fetchProjects, fetchSPIData} from "../redux/actions";
+import {store} from "../redux/store";
 
 const AWS = require("aws-sdk");
 

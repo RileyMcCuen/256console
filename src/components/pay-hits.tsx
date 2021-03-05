@@ -1,9 +1,9 @@
 import React from "react";
-import {Data, RootState, updateMTurkMode} from "./actions";
+import {Data, RootState, updateMTurkMode} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
 import {DataTable} from "./table";
 import ButtonWithDescription from "./button-with-description";
-import MTPool from "./mturk";
+import MTPool from "../aws/mturk";
 const csvp = require('csv-parse');
 
 export const mapState = (state: RootState) => {
@@ -13,7 +13,7 @@ export const mapState = (state: RootState) => {
         currentProject: state.currentProject,
         currentIteration: state.currentIteration,
         spiData: state.spiData,
-        csvData: state.csvData,
+        submitHITData: state.submitHITData,
         students: state.students,
         mturkMode: state.mturkMode,
     };

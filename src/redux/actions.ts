@@ -1,5 +1,5 @@
-import {table, ClassTable, ProjectDescription, Task} from "./db";
-import MTPool, {TAccountBalances} from "./mturk";
+import {table, ClassTable, ProjectDescription, Task} from "../aws/db";
+import MTPool, {TAccountBalances} from "../aws/mturk";
 import {store} from "./store";
 import {Parser} from "papaparse";
 
@@ -20,8 +20,13 @@ export const UPDATE_CURRENT_ITERATION = 'UPDATE_CURRENT_ITERATION';
 export const UPDATE_SPI_DATA = 'UPDATE_SPI_DATA';
 export const UPDATE_STUDENTS = 'UPDATE_STUDENTS';
 export const UPDATE_BALANCES = 'UPDATE_BALANCES';
-export const UPDATE_CSV_DATA = 'UPDATE_CSV_DATA';
+export const UPDATE_SUBMIT_HIT_DATA = 'UPDATE_SUBMIT_HIT_DATA';
 export const UPDATE_MTURK_MODE = 'UPDATE_MTURK_MODE';
+
+export enum SubmitHITDataType {
+    COUNT_GIVEN,
+    COUNT_NOT_GIVEN,
+}
 
 export class Data {
     header: string[];
@@ -47,6 +52,16 @@ export class Data {
         });
         return ret;
     }
+
+    resetValues() {
+        this.values = [];
+        return this;
+    }
+}
+
+export interface SubmitHITData {
+    dataType: SubmitHITDataType,
+    data: Data,
 }
 
 export interface StudentProjectIterationTask {
@@ -96,7 +111,7 @@ export interface RootState {
     spiData: null | SPIData;
     students: Student[];
     accountBalances: TAccountBalances;
-    csvData: Data;
+    submitHITData: SubmitHITData,
     mturkMode: MTurkMode;
 }
 
@@ -176,10 +191,10 @@ export const updateBalances = (accountBalances: TAccountBalances) => {
     };
 }
 
-export const updateCSVData = (csvData: Data) => {
+export const updateSubmitHITData = (submitHITData: SubmitHITData) => {
     return {
-        type: UPDATE_CSV_DATA,
-        csvData
+        type: UPDATE_SUBMIT_HIT_DATA,
+        submitHITData
     }
 }
 

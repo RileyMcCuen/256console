@@ -12,6 +12,7 @@ import SubmitHits from "./submit-hits";
 import CancelHits from "./cancel-hits";
 import DownloadZip from "./download-zip";
 import PayHits from "./pay-hits";
+import HitStatuses from "./hit-status";
 
 type TabRef = {tab: Tab | undefined}
 
@@ -170,6 +171,12 @@ export class HitManagementTab extends React.Component<ConcreteTabProps, {}> {
                         name: 'Submit HITs',
                         description: 'Submit hits for the current project and iteration. These hits will be submitted based on the currently generated hits for this project and iteration. You can view those in the table below. If you would like different task assignments then change them here: [insert button that leads to generate hit assignment]',
                         component: <SubmitHits />
+                    },
+                    {
+                        urlName: 'hit_statuses',
+                        name: 'HIT Statuses',
+                        description: 'Display the status of all of the hits that are currently running on MTurk. You can use this information to determine how quickly hits are coming in.',
+                        component: <HitStatuses />
                     },
                     {
                         urlName: 'cancel_hits',

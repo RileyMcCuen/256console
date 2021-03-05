@@ -1,5 +1,5 @@
 import React from "react";
-import {RootState, updateStudents} from "./actions";
+import {RootState, updateStudents} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
 const csvp = require('csv-parse');
 

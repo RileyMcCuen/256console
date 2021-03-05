@@ -1,5 +1,5 @@
 import React from "react";
-import {RootState, updateStudents, updateSPIData, SPIData} from "./actions";
+import {RootState, updateStudents, updateSPIData, SPIData} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
 import ButtonWithDescription from "./button-with-description";
 
