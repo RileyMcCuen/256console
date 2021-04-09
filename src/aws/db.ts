@@ -438,6 +438,24 @@ export class ClassTable extends Table {
         // return ret;
     }
 
+    async createLogEntry(hitID: string, assignmentID: string, workerID: string, key: string, time: string) {
+        const log = Log.Create(hitID, assignmentID, workerID, key, time);
+        const resp = await this.put(log);
+        return log;
+    }
+
+    async getLogEntries(keyMidFix: string) {
+        return (await this.query(
+            'PKMeta = :pk',
+            {
+                ':pk': '#STUDENT:D'
+            },
+        )).
+        map(item => new Log(item)).
+        filter(log => log.Key.includes(keyMidFix)).
+        filter(log => !log.Key.includes('riley.mccuen.t'));
+    }
+
 }
 
 type HITSortKeyData = {
@@ -570,15 +588,22 @@ export class Log extends ClassTableEntity {
 
     static primaryKeyPrefix = 'STUDENT';
     static sortKeyPrefix = 'LOG';
-    public static readonly  primaryKey = new PrimaryKey(ClassTable.PKName, Log.primaryKeyPrefix, 'HITID', Types.Str);
-    public static readonly sortKey = new SortKey(ClassTable.SKName, Log.sortKeyPrefix, ['AssignmentID', 'WorkerID'], [Types.Str, Types.Str]);
+    static dummyPrimaryKey = 'D';
+    public static readonly  primaryKey = new PrimaryKey(ClassTable.PKName, Log.primaryKeyPrefix, 'PKD', Types.Str);
+    public static readonly sortKey = new SortKey(ClassTable.SKName, Log.sortKeyPrefix, ['HITID', 'AssignmentID', 'WorkerID'], [Types.Str, Types.Str, Types.Str]);
 
+    // @ts-ignore
+    PKD: string; // Dummy placeholder key
     // @ts-ignore
     HITID: string;
     // @ts-ignore
     AssignmentID: string;
     // @ts-ignore
     WorkerID: string;
+    // @ts-ignore
+    Key: string;
+    // @ts-ignore
+    TimeOfSubmission: string;
 
     constructor(data: DynamoDB.DocumentClient.AttributeMap) {
         super();
@@ -597,10 +622,32 @@ export class Log extends ClassTableEntity {
         return Log.sortKeyPrefix;
     }
 
-    public static Create(hitID: string, assignmentID: string, workerID: string) {
+    keyFileNamePair(): {
+        key: string;
+        fileName: string;
+    } {
+        const keyParts = this.Key.split('/');
+        if (keyParts.length === 5) {
+            const wustlKey = keyParts[0];
+            const taskName = keyParts[3];
+            const logFileName = keyParts[4];
+            return {
+                key: this.Key,
+                fileName: wustlKey + '_' + taskName + '_' + logFileName,
+            };
+        }
+        return {
+            key: this.Key,
+            fileName: this.Key,
+        }
+    }
+
+    public static Create(hitID: string, assignmentID: string, workerID: string, key: string, time: string) {
         return new Log({
-            PKMeta: this.primaryKey.toString(hitID),
-            SKMeta: this.sortKey.toString({AssignmentID: assignmentID, WorkerID: workerID}),
+            PKMeta: this.primaryKey.toString(Log.dummyPrimaryKey),
+            SKMeta: this.sortKey.toString({HITID: hitID, AssignmentID: assignmentID, WorkerID: workerID}),
+            Key: key,
+            TimeOfSubmission: time,
         });
     }
 

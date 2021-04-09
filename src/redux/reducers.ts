@@ -37,7 +37,7 @@ const defaultState: RootState = {
     loggedIn: LoginStatus.UNATTEMPTED,
     dbStatus: EDBStatus.Unknown,
     projects: [],
-    iterations: 3,
+    iterations: 5,
     currentProject: ProjectDescription.Create('', ''),
     currentIteration: 0,
     spiData: null,

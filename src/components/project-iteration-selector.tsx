@@ -43,7 +43,7 @@ class ProjectIterationSelector extends React.Component<Props, State> {
                     Project Name: Iteration
                 </div>
                 <div>
-                    <select className={'project-selector'} onChange={ev => this.props.updateCurrentProject(this.props.projects[ev.target.selectedIndex])}>
+                    <select className={'project-selector'} onChange={ev => this.props.updateCurrentProject(this.props.projects[ev.target.selectedIndex])} value={this.props.currentProject.Name}>
                         {
                             this.props.projects.map((project, index) => {
                                 return (
@@ -55,12 +55,12 @@ class ProjectIterationSelector extends React.Component<Props, State> {
                         }
                     </select>
                     <span className={'separator'}>:</span>
-                    <select className={'iteration-selector'} onChange={ev => this.props.updateCurrentIteration(parseInt(ev.target.value))}>
+                    <select className={'iteration-selector'} onChange={ev => this.props.updateCurrentIteration(parseInt(ev.target.value))} value={this.props.currentIteration}>
                         {
                             ffor(this.props.iterations, (iteration => {
                                 return (
                                     <option key={iteration} value={iteration}>
-                                        {iteration + 1}
+                                        {iteration}
                                     </option>
                                 );
                             }))

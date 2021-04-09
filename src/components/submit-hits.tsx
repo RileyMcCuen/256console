@@ -1,9 +1,10 @@
 import React from "react";
-import Table, {DataTable} from "./table";
 import {Data, fetchSPIData, MTurkMode, RootState, SubmitHITDataType, updateMTurkMode} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
 import MTPool from "../aws/mturk";
+import ButtonWithDescription, {LoadingState} from "./button-with-description";
 import {SandboxToggle, Toggle} from "./toggle";
+import Table, {DataTable} from "./table";
 
 export const mapState = (state: RootState) => {
     return {
@@ -32,6 +33,7 @@ type State = {
     activeTable: number,
     price: string,
     errors: Data,
+    loadingState: LoadingState,
 }
 
 class SubmitHits extends React.Component<Props, State> {
@@ -42,6 +44,7 @@ class SubmitHits extends React.Component<Props, State> {
             activeTable: 0,
             price: '0.40',
             errors: new Data(['WUSTL Key', 'Error', 'Count'], []),
+            loadingState: LoadingState.FRESH,
         };
     }
 
@@ -85,6 +88,7 @@ class SubmitHits extends React.Component<Props, State> {
     }
 
     buildURL(wustlKey: string, url: string, taskTag: string) {
+        console.log(this.props.currentIteration)
         return `${url}/?wustl_key=${wustlKey}&amp;sandbox=${this.props.mturkMode === MTurkMode.SANDBOX}&amp;project=${this.props.currentProject.Name}&amp;iteration=${this.props.currentIteration}&amp;tag=${taskTag}`;
     }
 
@@ -165,27 +169,46 @@ class SubmitHits extends React.Component<Props, State> {
 
     render() {
         return <div>
-            <button
-                className={"refresh danger"}
+            <ButtonWithDescription
+                buttonTitle={'Submit Hits'}
+                description={'Submnits hits to MTurk based on the settings selected below.'}
+                buttonClass={"refresh danger"}
                 onClick={async () => {
-                    const hitData = await this.buildURLS();
-                    const resp = await MTPool.uploadHits(hitData, this.props.mturkMode);
-                    this.state.errors.resetValues();
-                    for(let i = 0; i < resp.length; i++) {
-                        const re = await resp[i];
-                        if ('error' in re) {
-                            const row = this.state.errors.findFirstEntry([{index: 0, expectedValue: re.wustlKey}, {index: 1, expectedValue: re.code}]);
-                            if (row) {
-                                row[row.length - 1] = '' + (parseInt(row[row.length - 1]) + 1);
+                    try {
+                        this.setState({
+                            loadingState: LoadingState.LOADING,
+                        });
+                        const hitData = await this.buildURLS();
+                        const resp = await MTPool.uploadHits(hitData, this.props.mturkMode, this.props.currentProject.Name);
+                        this.state.errors.resetValues();
+                        for (let i = 0; i < resp.length; i++) {
+                            const re = await resp[i];
+                            if ('error' in re) {
+                                const row = this.state.errors.findFirstEntry([{
+                                    index: 0,
+                                    expectedValue: re.wustlKey
+                                }, {index: 1, expectedValue: re.code}]);
+                                if (row) {
+                                    row[row.length - 1] = '' + (parseInt(row[row.length - 1]) + 1);
+                                } else {
+                                    this.state.errors.values.push([re.wustlKey, re.code, re.error, '1']);
+                                }
                             } else {
-                                this.state.errors.values.push([re.wustlKey, re.code, re.error, '1']);
+                                // do nothing, got updated account balances
                             }
-                        } else {
-                            // do nothing, got updated account balances
                         }
+                        this.setState({
+                            loadingState: LoadingState.SUCCESS,
+                        });
+                    } catch (e) {
+                        this.setState({
+                            loadingState: LoadingState.ERROR,
+                        });
                     }
                 }}
-            > Submit Hits </button>
+                display={true}
+                loadingState={LoadingState.FRESH}
+            />
             <SandboxToggle />
             <Toggle
                 onChange={(num: number) => {

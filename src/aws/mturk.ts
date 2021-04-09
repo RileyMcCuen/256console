@@ -2,6 +2,7 @@ import AWS, {AWSError} from 'aws-sdk';
 import {GetAccountBalanceResponse} from "aws-sdk/clients/mturk";
 import {Region} from "./aws-constants";
 import {Data, MTurkMode} from "../redux/actions";
+import {PromiseResult} from "aws-sdk/lib/request";
 
 type MTurkAccounts = { [wustlKey: string]: AWS.MTurk };
 export type AccountPair = {wustlKey: string, balance: string};
@@ -89,12 +90,14 @@ class MTurkPool {
 
     }
 
-    async uploadHits(urls: {[wustlKey: string]: {count: number, url: string, price: string}[]}, sandbox: MTurkMode) {
+    async uploadHits(urls: {[wustlKey: string]: {count: number, url: string, price: string}[]}, sandbox: MTurkMode, projectName: string) {
         this.setSandbox(sandbox);
+        const quals = await MTPool.createAndGetDisqualifiers(sandbox, projectName);
         return this.forp(async (wustlKey, acct) => {
             return new Promise<AccountPair | AWSTableError>((resolve, reject) => {
                 const urlsForStud = urls[wustlKey];
-                if (urlsForStud) {
+                const qual = quals[wustlKey];
+                if (qual && urlsForStud) {
                     urlsForStud.forEach(async urlCountPair => {
                         // console.log(wustlKey + ' ' + urlCountPair.url + ' ' + urlCountPair.count);
                         if (urlCountPair.count > 0) {
@@ -107,7 +110,14 @@ class MTurkPool {
                                         MaxAssignments: urlCountPair.count,
                                         Reward: urlCountPair.price,
                                         Title: "Information Foraging WUSTL",
-                                        Question: MTurkPool.HitConfig(urlCountPair.url)
+                                        Question: MTurkPool.HitConfig(urlCountPair.url),
+                                        QualificationRequirements: [
+                                            {
+                                                ActionsGuarded: "DiscoverPreviewAndAccept",
+                                                Comparator: "DoesNotExist",
+                                                QualificationTypeId: qual,
+                                            },
+                                        ]
                                     },
                                     async (err, data) => {
                                         if (err) {
@@ -187,7 +197,7 @@ class MTurkPool {
                                 WorkerId: row[1],
                                 BonusAmount: '0.10',
                                 Reason: 'Your work showed an honest effort to complete the task and you either found the correct answer or put in strong logical thought in your actions. Thank your for your time, and we hope this bonus makes the HIT feel more worthwhile.',
-                                UniqueRequestToken: ''
+                                UniqueRequestToken: 'uniquetoken'
                             }).promise();
                             console.log(resp.$response);
                             break;
@@ -245,6 +255,93 @@ class MTurkPool {
             }
         }
         return data;
+    }
+
+    async createAndGetDisqualifiers(sandbox: MTurkMode, project: string) {
+        this.setSandbox(sandbox);
+        const ret: {[wustlKey: string]: string} = {};
+        const promises = this.forp(async (key, acct) => {
+           let quals = await (acct.listQualificationTypes({MustBeRequestable: false, MustBeOwnedByCaller: true}).promise());
+           let id = '';
+           quals.QualificationTypes?.forEach(qual => {
+              if (qual.Name === project && qual.QualificationTypeId) {
+                  id = qual.QualificationTypeId;
+              }
+           });
+           if (id === '') {
+               try {
+                   const qual = await (acct.createQualificationType({
+                       Name: project,
+                       Description: 'This qualification is applied to anyone who has completed an information foraging task from the WUSTL Nursery School HITs.',
+                       AutoGranted: true,
+                       QualificationTypeStatus: 'Active',
+                       AutoGrantedValue: 0,
+                   }).promise());
+                   if (qual.QualificationType?.QualificationTypeId) {
+                       id = qual.QualificationType.QualificationTypeId;
+                   }
+               } catch (e) {
+                   console.log(e);
+               }
+           }
+           ret[key] = id;
+        });
+        for (const p of promises) {
+            await p;
+        }
+        return ret;
+    }
+
+    async workersWithQualID(acct: AWS.MTurk, id: string) {
+        let nextToken: string | undefined | null = undefined;
+        let ids: string[] = [];
+        do {
+            try {
+                const resp: PromiseResult<AWS.MTurk.ListWorkersWithQualificationTypeResponse, AWS.AWSError> = await (acct.listWorkersWithQualificationType({
+                    QualificationTypeId: id,
+                    NextToken: nextToken,
+                    MaxResults: 100,
+                }).promise());
+                nextToken = resp.NextToken;
+                resp.Qualifications?.forEach(qual => {
+                    ids.push(qual.WorkerId as string);
+                });
+            } catch (e) {
+                console.log(e);
+                return ids;
+            }
+        }
+        while(nextToken !== '' && nextToken !== null && nextToken !== undefined);
+        return ids;
+    }
+
+    async disqualify(sandbox: MTurkMode, project: string, workerIDs: Set<string>) {
+        this.setSandbox(sandbox);
+        const quals = await this.createAndGetDisqualifiers(sandbox, project);
+        const ids = Array.from(workerIDs);
+        console.log('Project: ' + project + ', so far has: ' + ids.length + ' workers listed as completing a HIT.');
+        const keys = Object.keys(this.accts);
+        for (const key of keys) {
+            const acct = this.accts[key];
+            const qualID = quals[key];
+            if (acct && qualID) {
+                for (const id of ids) {
+                    try {
+                        const resp = await (acct.associateQualificationWithWorker({
+                            IntegerValue: 1,
+                            QualificationTypeId: qualID,
+                            SendNotification: false,
+                            WorkerId: id,
+                        }).promise());
+                        // console.log(resp.$response)
+                    } catch (e) {
+                        console.log('ERROR: ' + e.toString());
+                    }
+                }
+            }
+            const wis = await this.workersWithQualID(acct, qualID);
+            console.log('\t Student: ' + key + ', has: ' + wis.length + ' workers disqualified for this project so far.');
+        }
     }
 }
 

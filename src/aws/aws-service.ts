@@ -175,16 +175,9 @@ export const awsLogout = async () => {
 
 export const downloadAllFiles = async (project: string, iteration: number) => {
     const url = BaseURL + `/logs?project=${project}&iteration=${iteration}`;
-    const b64= (await (await (awsFetchClient as AwsClient).fetch(url, {
+    const resp = (await (awsFetchClient as AwsClient).fetch(url, {
         method: METHODS.GET,
         headers: AppJSONHeaders()
-    })).text());
-    const byteString = atob(b64);
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-
-    for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([ab], { type: 'application/zip' });
+    }));
+    return resp.json();
 }

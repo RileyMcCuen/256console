@@ -1,7 +1,7 @@
 import React from "react";
-import {RootState, updateStudents, updateSPIData, SPIData} from "../redux/actions";
+import {RootState, SPIData, updateSPIData, updateStudents} from "../redux/actions";
 import {connect, ConnectedProps} from "react-redux";
-import ButtonWithDescription from "./button-with-description";
+import ButtonWithDescription, {BWDState, LoadingState} from "./button-with-description";
 
 export const mapState = (state: RootState) => {
     return {
@@ -29,10 +29,17 @@ enum Generated {
     GENERATED,
 }
 
-type State = {
+type State = BWDState & {
 }
 
 export default connector(class HITGenerator extends React.Component<Props, State> {
+
+    constructor(props: Props) {
+        super(props);
+        this.state = {
+            loadingStatus: LoadingState.FRESH,
+        }
+    }
 
     threeRands(max: number) {
         if (max < 3) {
@@ -129,6 +136,7 @@ export default connector(class HITGenerator extends React.Component<Props, State
                         this.generate();
                     }}
                     display={generated === Generated.NOT_GENERATED}
+                    loadingState={this.state.loadingStatus}
                 />
                 <ButtonWithDescription
                     buttonTitle={'Regenerate'}
@@ -138,6 +146,7 @@ export default connector(class HITGenerator extends React.Component<Props, State
                         this.generate();
                     }}
                     display={generated === Generated.GENERATED}
+                    loadingState={this.state.loadingStatus}
                 />
             </div>
         );

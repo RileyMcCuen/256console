@@ -604,11 +604,20 @@ table.component td.not-ready {
 }
 
 .button-container > button:first-child {
-    width: 88%;
+    flex: 1 auto auto;
+    margin-right: 10px;
 }
 
-.button-container > button:first-child + button {
-    width: 10%;
+.button-container > button:first-child + * {
+    display: inline-block;
+}
+
+.button-container > span {
+    margin-right: 15px;
+}
+
+.button-container > span > * {
+    height: 95%;
 }
 
 .button-with-description > div + div {

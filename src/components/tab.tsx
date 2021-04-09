@@ -4,7 +4,7 @@ import ProjectIterationSelector from "./project-iteration-selector";
 import UpdateProjects from "./update-projects";
 import Table from "./table";
 import {Logout} from "./login";
-import ButtonWithDescription from "./button-with-description";
+import ButtonWithDescription, {BWDState, LoadingState} from "./button-with-description";
 import StudentFileInput from "./file-input";
 import HITGenerator from "./hit-generator";
 import AccountBalances from "./account-balances";
@@ -13,6 +13,7 @@ import CancelHits from "./cancel-hits";
 import DownloadZip from "./download-zip";
 import PayHits from "./pay-hits";
 import HitStatuses from "./hit-status";
+import Disqualify from "./disqualify";
 
 type TabRef = {tab: Tab | undefined}
 
@@ -109,7 +110,15 @@ interface ConcreteTabProps {
     tabRef: TabRef;
 }
 
-export class SemesterManagementTab extends React.Component<ConcreteTabProps, {}> {
+export class SemesterManagementTab extends React.Component<ConcreteTabProps, BWDState> {
+
+    constructor(props: ConcreteTabProps) {
+        super(props);
+        this.state = {
+            loadingStatus: LoadingState.FRESH
+        };
+    }
+
 
     render() {
         return <Tab
@@ -122,9 +131,14 @@ export class SemesterManagementTab extends React.Component<ConcreteTabProps, {}>
                     description: 'Deletes all data from the database that is specific to a semester. Retains login data and other non-semester specific data.',
                     component: (<div>
                                     <div>
-                                        <ButtonWithDescription buttonTitle={'Clear Database'}
-                                                               description={'Clicking this button will delete all data from the database that is not meant to be carried over. This includes: HIT assignments, Student ID to HIT ID mappings and more. Click this button once the semester is completely over and you are ready to clean out all of the old data.'}
-                                                               buttonClass={'danger'} onClick={() => {}} display={true} />
+                                        <ButtonWithDescription
+                                            buttonTitle={'Clear Database'}
+                                            description={'Clicking this button will delete all data from the database that is not meant to be carried over. This includes: HIT assignments, Student ID to HIT ID mappings and more. Click this button once the semester is completely over and you are ready to clean out all of the old data.'}
+                                            buttonClass={'danger'}
+                                            onClick={() => {}}
+                                            display={true}
+                                            loadingState={this.state.loadingStatus}
+                                        />
                                     </div>
                                     <DBStatus/>
                                 </div>)
@@ -210,14 +224,29 @@ export class PostHitManagementTab extends React.Component<ConcreteTabProps, {}> 
         return <Tab
             tabRef={this.props.tabRef}
             display={this.props.display}
-            actions={[]}
-        />
+            actions={[
+                {
+                    urlName: 'disqualify',
+                    name: 'Disqualify HITs',
+                    description: 'Disqualifies workers based on the currently selected project and iteration so they cannot do the next iterations for the same project.',
+                    component: <Disqualify />
+                }
+            ]}
+        >
+            <ProjectIterationSelector />
+        </Tab>
     }
 
 }
 
-export class SessionManagementTab extends React.Component<ConcreteTabProps, {}> {
+export class SessionManagementTab extends React.Component<ConcreteTabProps, BWDState> {
 
+    constructor(props: ConcreteTabProps) {
+        super(props);
+        this.state = {
+            loadingStatus: LoadingState.FRESH,
+        };
+    }
     render() {
         return <Tab
             tabRef={this.props.tabRef}
@@ -236,7 +265,7 @@ export class SessionManagementTab extends React.Component<ConcreteTabProps, {}> 
                                     description={'This will download a CSV Template that you can then fill out with student credentials. This template has correctly spelt and formatted headers so that there are no validation errors when uploading it later.'}
                                     buttonClass={'safe'}
                                     onClick={() => {
-                                        const uri = 'data:text/plain;charset=utf-8,' + encodeURIComponent("WUSTL Key,AWS IAM ID,AWS IAM SECRET\n");
+                                        const uri = 'data:text/plain;charset=utf-8,' + encodeURIComponent("WUSTL Key,GH Pages URL,AWS IAM ID,AWS IAM SECRET\n");
                                         const a = document.createElement('a');
                                         a.style.display = 'none';
                                         a.href = uri;
@@ -246,6 +275,7 @@ export class SessionManagementTab extends React.Component<ConcreteTabProps, {}> 
                                         a.remove();
                                     }}
                                     display={true}
+                                    loadingState={this.state.loadingStatus}
                                 />
                             </div>
                     },
