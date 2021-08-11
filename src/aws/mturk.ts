@@ -92,6 +92,14 @@ class MTurkPool {
 
     async uploadHits(urls: {[wustlKey: string]: {count: number, url: string, price: string}[]}, sandbox: MTurkMode, projectName: string) {
         this.setSandbox(sandbox);
+        const name: string = ({
+            'information-foraging': 'Information Foraging WUSTL',
+            'gender-mag': 'File Permissions WUSTL'
+        } as {[projectName: string]: string})[projectName];
+        const description: string = ({
+            'information-foraging': 'You will be given a scenario for a website user. Please navigate through the website to find the answer - your path is tracked as you work. When you are on the page with the answer, fill out the text box in the drop down at the top of the page and click submit. Correct answers will receive bonuses of up to $.25.',
+            'gender-mag': 'Use the given scenario to adjust the Windows style file permissions. It is fine if you do not complete the task, please provide feedback both good and bad. Excellent work can earn bonuses up to 0.30.'
+        } as {[projectName: string]: string})[projectName];
         const quals = await MTPool.createAndGetDisqualifiers(sandbox, projectName);
         return this.forp(async (wustlKey, acct) => {
             return new Promise<AccountPair | AWSTableError>((resolve, reject) => {
@@ -101,42 +109,40 @@ class MTurkPool {
                     urlsForStud.forEach(async urlCountPair => {
                         // console.log(wustlKey + ' ' + urlCountPair.url + ' ' + urlCountPair.count);
                         if (urlCountPair.count > 0) {
-                            setTimeout(async () => {
-                                acct.createHIT({ // TODO: fix this to be generalizable config
-                                        AssignmentDurationInSeconds: 360,
-                                        AutoApprovalDelayInSeconds: 2592000,
-                                        Description: 'You will be given a scenario for a website user. Please navigate through the website to find the answer - your path is tracked as you work. When you are on the page with the answer, fill out the text box in the drop down at the top of the page and click submit. Correct answers will receive bonuses of up to $.25.',
-                                        LifetimeInSeconds: (60 * 60 * 20), // 20 hours
-                                        MaxAssignments: urlCountPair.count,
-                                        Reward: urlCountPair.price,
-                                        Title: "Information Foraging WUSTL",
-                                        Question: MTurkPool.HitConfig(urlCountPair.url),
-                                        QualificationRequirements: [
-                                            {
-                                                ActionsGuarded: "DiscoverPreviewAndAccept",
-                                                Comparator: "DoesNotExist",
-                                                QualificationTypeId: qual,
-                                            },
-                                        ]
-                                    },
-                                    async (err, data) => {
-                                        if (err) {
-                                            console.log("ERROR: " + err);
-                                            resolve({
-                                                wustlKey: wustlKey,
-                                                error: err.name,
-                                                code: err.code,
-                                                message: err.message
-                                            });
-                                        } else {
-                                            console.log("DATA: " + data);
-                                            resolve({
-                                                wustlKey: wustlKey,
-                                                balance: (await acct.getAccountBalance().promise()).AvailableBalance as string,
-                                            });
-                                        }
-                                    });
-                            },100);
+                            acct.createHIT({ // TODO: fix this to be generalizable config
+                                    AssignmentDurationInSeconds: 360,
+                                    AutoApprovalDelayInSeconds: 2592000,
+                                    Description: description,
+                                    LifetimeInSeconds: (60 * 60 * 20), // 20 hours
+                                    MaxAssignments: urlCountPair.count,
+                                    Reward: urlCountPair.price,
+                                    Title: name,
+                                    Question: MTurkPool.HitConfig(urlCountPair.url),
+                                    QualificationRequirements: [
+                                        {
+                                            ActionsGuarded: "DiscoverPreviewAndAccept",
+                                            Comparator: "DoesNotExist",
+                                            QualificationTypeId: qual,
+                                        },
+                                    ]
+                                },
+                                async (err, data) => {
+                                    if (err) {
+                                        console.log("ERROR: " + err);
+                                        resolve({
+                                            wustlKey: wustlKey,
+                                            error: err.name,
+                                            code: err.code,
+                                            message: err.message
+                                        });
+                                    } else {
+                                        console.log("DATA: " + data);
+                                        resolve({
+                                            wustlKey: wustlKey,
+                                            balance: (await acct.getAccountBalance().promise()).AvailableBalance as string,
+                                        });
+                                    }
+                            });
                         }
                     });
                 }
@@ -144,29 +150,44 @@ class MTurkPool {
         });
     }
 
-    async cancelHits() {
-        return this.forp(async (wustlKey, acct) => {
+    async cancelHits(sandbox: MTurkMode) {
+        this.setSandbox(sandbox);
+        const promises = this.forp(async (wustlKey, acct) => {
             return new Promise<AccountPair>(async (resolve, reject) => {
-                const hits = await acct.listHITs().promise();
-                hits.HITs?.forEach(hit => {
-                    setTimeout(() => {
-                        acct.updateExpirationForHIT({
-                            ExpireAt: new Date(),
+                console.log(wustlKey);
+                let allHits: any[] = [];
+                let nextToken = undefined;
+                let hits;
+                do {
+                    hits = await acct.listHITs({NextToken: nextToken}).promise();
+                    console.log(hits);
+                    if (hits.HITs) {
+                        allHits.push(...hits.HITs);
+                        nextToken = hits.NextToken;
+                        console.log(nextToken)
+                    }
+                } while(nextToken !== undefined);
+                let nDate = new Date();
+                nDate.setMilliseconds(new Date().getMilliseconds() - 1000);
+                for (const hit of allHits) {
+                    if (hit.Expiration && hit.Expiration > new Date().getMilliseconds()) {
+                        const resp = await acct.updateExpirationForHIT({
+                            ExpireAt: nDate,
                             HITId: hit.HITId as string
-                        }, (err, data) => {
-                            if (err) {
-                                console.log("ERROR: " + err);
-                            } else {
-                                console.log("DATA: " + data);
-                            }
-                        });
-                    },100);
-                });
+                        }).promise();
+                        console.log(resp.$response.error + " " + resp.$response.httpResponse);
+                    }
+                }
+                resolve();
             });
         });
+        for (let i = 0; i < promises.length; i++) {
+            await promises[i];
+        }
     }
 
-    async payHits(data: Data) {
+    async payHits(data: Data, sandbox: MTurkMode) {
+        this.setSandbox(sandbox);
         for (let i = 0; i < data.values.length; i++) {
             const row = data.values[i];
             const acct = this.accts[row[0]];
@@ -197,7 +218,7 @@ class MTurkPool {
                                 WorkerId: row[1],
                                 BonusAmount: '0.10',
                                 Reason: 'Your work showed an honest effort to complete the task and you either found the correct answer or put in strong logical thought in your actions. Thank your for your time, and we hope this bonus makes the HIT feel more worthwhile.',
-                                UniqueRequestToken: 'uniquetoken'
+                                UniqueRequestToken: row[2]
                             }).promise();
                             console.log(resp.$response);
                             break;
@@ -254,6 +275,7 @@ class MTurkPool {
                 await promise;
             }
         }
+        data.values.sort((a, b) => -(parseInt(a[0]) + parseInt(a[1])) + (parseInt(b[0]) + parseInt(b[1])));
         return data;
     }
 

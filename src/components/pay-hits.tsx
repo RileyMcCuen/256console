@@ -4,6 +4,7 @@ import {connect, ConnectedProps} from "react-redux";
 import {DataTable} from "./table";
 import ButtonWithDescription, {BWDState, LoadingState} from "./button-with-description";
 import MTPool from "../aws/mturk";
+import {SandboxToggle} from "./toggle";
 
 const csvp = require('csv-parse');
 
@@ -91,6 +92,7 @@ class PayHits extends React.Component<Props, State> {
         return (
             <div>
                 {this.renderFileInput()}
+                <SandboxToggle />
                 <ButtonWithDescription
                     buttonTitle={'Pay'}
                     description={'Resolves all of the HITs listed with the action that is provided for it. Valid actions are: approve, bonus, and reject.'}
@@ -98,7 +100,7 @@ class PayHits extends React.Component<Props, State> {
                     onClick={async () => {
                         try {
                             this.setState({loadingStatus: LoadingState.LOADING, errorString: undefined});
-                            await MTPool.payHits(this.state.data);
+                            await MTPool.payHits(this.state.data, this.props.mturkMode);
                             this.setState({loadingStatus: LoadingState.SUCCESS, errorString: undefined});
                         } catch (e) {
                             this.setState({loadingStatus: LoadingState.ERROR, errorString: e.toString()});

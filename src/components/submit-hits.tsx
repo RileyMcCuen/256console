@@ -205,9 +205,10 @@ class SubmitHits extends React.Component<Props, State> {
                             loadingState: LoadingState.ERROR,
                         });
                     }
+                    console.log("FINISHED LOADING: " + this.state.loadingState);
                 }}
                 display={true}
-                loadingState={LoadingState.FRESH}
+                loadingState={this.state.loadingState}
             />
             <SandboxToggle />
             <Toggle

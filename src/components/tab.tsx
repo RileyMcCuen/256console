@@ -274,6 +274,7 @@ export class SessionManagementTab extends React.Component<ConcreteTabProps, BWDS
                                         a.click();
                                         a.remove();
                                     }}
+
                                     display={true}
                                     loadingState={this.state.loadingStatus}
                                 />
