@@ -107,7 +107,7 @@ class MTurkPool {
                 const qual = quals[wustlKey];
                 if (qual && urlsForStud) {
                     urlsForStud.forEach(async urlCountPair => {
-                        // console.log(wustlKey + ' ' + urlCountPair.url + ' ' + urlCountPair.count);
+                        console.log(wustlKey + ' ' + urlCountPair.url + ' ' + urlCountPair.count);
                         if (urlCountPair.count > 0) {
                             acct.createHIT({ // TODO: fix this to be generalizable config
                                     AssignmentDurationInSeconds: 360,
